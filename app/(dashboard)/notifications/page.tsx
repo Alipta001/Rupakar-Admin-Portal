@@ -29,7 +29,15 @@ export default function NotificationsPage() {
     )
   }
 
-  const notifications: AdminNotification[] = (rawNotifications || []).map((n: any) => ({
+  const rawList = Array.isArray(rawNotifications)
+    ? rawNotifications
+    : Array.isArray((rawNotifications as any)?.items)
+    ? (rawNotifications as any).items
+    : Array.isArray((rawNotifications as any)?.data)
+    ? (rawNotifications as any).data
+    : []
+
+  const notifications: AdminNotification[] = rawList.map((n: any) => ({
     id: n.id || n._id || '',
     title: n.title || 'System Notification',
     message: n.message || '',

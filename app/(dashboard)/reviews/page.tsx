@@ -32,7 +32,15 @@ export default function ReviewsPage() {
     )
   }
 
-  const reviews: Review[] = (data?.items || []).map((r: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const reviews: Review[] = rawList.map((r: any) => ({
     id: r.id || r._id || '',
     productId: r.productId || '',
     productTitle: r.productTitle || r.product?.title || 'Artisan Craft',

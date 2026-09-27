@@ -29,7 +29,15 @@ export default function AuditLogsPage() {
     )
   }
 
-  const logs: AuditLog[] = (data?.items || []).map((l: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const logs: AuditLog[] = rawList.map((l: any) => ({
     id: l.id || l._id || '',
     actorName: l.actorName || l.actorId?.name || l.actorEmail || 'Admin',
     actorRole: l.actorRole || 'ADMIN',

@@ -32,7 +32,15 @@ export default function AuthenticityPage() {
     )
   }
 
-  const certs: AuthenticityRecord[] = (data?.items || []).map((c: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const certs: AuthenticityRecord[] = rawList.map((c: any) => ({
     id: c.id || c._id || '',
     productId: c.productId || '',
     productTitle: c.productTitle || c.title || 'Artisan Craft Item',

@@ -32,7 +32,15 @@ export default function BrandsPage() {
     )
   }
 
-  const brands: Brand[] = (rawBrands || []).map((b: any) => ({
+  const rawList = Array.isArray(rawBrands)
+    ? rawBrands
+    : Array.isArray((rawBrands as any)?.items)
+    ? (rawBrands as any).items
+    : Array.isArray((rawBrands as any)?.data)
+    ? (rawBrands as any).data
+    : []
+
+  const brands: Brand[] = rawList.map((b: any) => ({
     id: b.id || b._id || '',
     name: b.name || '',
     slug: b.slug || '',

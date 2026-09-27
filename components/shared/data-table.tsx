@@ -39,15 +39,17 @@ export function DataTable<T>({
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
 
+  const safeData = Array.isArray(data) ? data : []
+
   const filtered = React.useMemo(() => {
-    if (!query.trim()) return data
-    if (searchFilter) return data.filter(item => searchFilter(item, query))
-    return data.filter(item =>
+    if (!query.trim()) return safeData
+    if (searchFilter) return safeData.filter(item => searchFilter(item, query))
+    return safeData.filter(item =>
       Object.values(item as Record<string, unknown>).some(val =>
         String(val).toLowerCase().includes(query.toLowerCase())
       )
     )
-  }, [data, query, searchFilter])
+  }, [safeData, query, searchFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const currentPage = Math.min(Math.max(1, page), totalPages)
@@ -83,7 +85,7 @@ export function DataTable<T>({
           )}
           {filterControls}
           <span className="toolbar-count">
-            {filtered.length} of {data.length} results
+            {filtered.length} of {safeData.length} results
           </span>
         </div>
       )}

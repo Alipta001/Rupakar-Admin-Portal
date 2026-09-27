@@ -37,7 +37,15 @@ export default function CouponsPage() {
     )
   }
 
-  const coupons: Coupon[] = (data?.items || []).map((c: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const coupons: Coupon[] = rawList.map((c: any) => ({
     id: c.id || c._id || '',
     code: c.code || '',
     description: c.description,

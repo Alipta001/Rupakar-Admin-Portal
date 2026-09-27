@@ -32,7 +32,15 @@ export default function CategoriesPage() {
     )
   }
 
-  const categories: Category[] = (rawCategories || []).map((cat: any) => ({
+  const rawList = Array.isArray(rawCategories)
+    ? rawCategories
+    : Array.isArray((rawCategories as any)?.items)
+    ? (rawCategories as any).items
+    : Array.isArray((rawCategories as any)?.data)
+    ? (rawCategories as any).data
+    : []
+
+  const categories: Category[] = rawList.map((cat: any) => ({
     id: cat.id || cat._id || '',
     name: cat.name || '',
     slug: cat.slug || '',

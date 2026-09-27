@@ -29,7 +29,15 @@ export default function SupportPage() {
     )
   }
 
-  const tickets: SupportTicket[] = (data?.items || []).map((t: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const tickets: SupportTicket[] = rawList.map((t: any) => ({
     id: t.id || t._id || '',
     ticketNumber: t.ticketNumber || `TCK-${(t.id || t._id || '').slice(-6).toUpperCase()}`,
     subject: t.subject || 'Support Request',

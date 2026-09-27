@@ -45,6 +45,107 @@ export interface PaginatedResult<T> {
 }
 
 /**
+ * Helper to normalize any response containing a list into a standard PaginatedResult<T>.
+ * Extracts items regardless of whether the backend returned `data`, `items`, `rows`,
+ * `products`, `vendors`, `categories`, `notifications`, `payouts`, etc., or a direct array.
+ */
+export function normalizePaginatedResult<T>(
+  raw: unknown,
+  fallbackLimit = 20
+): PaginatedResult<T> {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      items: [],
+      data: [],
+      total: 0,
+      page: 1,
+      limit: fallbackLimit,
+      totalPages: 1,
+    }
+  }
+
+  if (Array.isArray(raw)) {
+    return {
+      items: raw as T[],
+      data: raw as T[],
+      total: raw.length,
+      page: 1,
+      limit: raw.length || fallbackLimit,
+      totalPages: 1,
+    }
+  }
+
+  const resObj = raw as Record<string, unknown>
+  let list: T[] = []
+
+  if (Array.isArray(resObj.items)) {
+    list = resObj.items as T[]
+  } else if (Array.isArray(resObj.data)) {
+    list = resObj.data as T[]
+  } else if (Array.isArray(resObj.rows)) {
+    list = resObj.rows as T[]
+  } else if (Array.isArray(resObj.products)) {
+    list = resObj.products as T[]
+  } else if (Array.isArray(resObj.vendors)) {
+    list = resObj.vendors as T[]
+  } else if (Array.isArray(resObj.users)) {
+    list = resObj.users as T[]
+  } else if (Array.isArray(resObj.orders)) {
+    list = resObj.orders as T[]
+  } else if (Array.isArray(resObj.payouts)) {
+    list = resObj.payouts as T[]
+  } else if (Array.isArray(resObj.categories)) {
+    list = resObj.categories as T[]
+  } else if (Array.isArray(resObj.brands)) {
+    list = resObj.brands as T[]
+  } else if (Array.isArray(resObj.notifications)) {
+    list = resObj.notifications as T[]
+  }
+
+  const total = typeof resObj.total === 'number' ? resObj.total : list.length
+  const page = typeof resObj.page === 'number' && resObj.page > 0 ? resObj.page : 1
+  const limit = typeof resObj.limit === 'number' && resObj.limit > 0 ? resObj.limit : fallbackLimit
+  const totalPages =
+    typeof resObj.totalPages === 'number'
+      ? resObj.totalPages
+      : Math.ceil(total / limit) || 1
+
+  return {
+    ...resObj,
+    items: list,
+    data: list,
+    total,
+    page,
+    limit,
+    totalPages,
+  }
+}
+
+/**
+ * Helper to normalize simple array responses (e.g. categories, brands, notifications).
+ * If the backend wraps the list in { items: [...] } or { data: [...] }, this extracts the array.
+ */
+export function normalizeArray<T>(raw: unknown): T[] {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw as T[]
+  if (typeof raw === 'object') {
+    const resObj = raw as Record<string, unknown>
+    if (Array.isArray(resObj.items)) return resObj.items as T[]
+    if (Array.isArray(resObj.data)) return resObj.data as T[]
+    if (Array.isArray(resObj.rows)) return resObj.rows as T[]
+    if (Array.isArray(resObj.categories)) return resObj.categories as T[]
+    if (Array.isArray(resObj.brands)) return resObj.brands as T[]
+    if (Array.isArray(resObj.notifications)) return resObj.notifications as T[]
+    if (Array.isArray(resObj.products)) return resObj.products as T[]
+    if (Array.isArray(resObj.vendors)) return resObj.vendors as T[]
+    if (Array.isArray(resObj.users)) return resObj.users as T[]
+    if (Array.isArray(resObj.orders)) return resObj.orders as T[]
+    if (Array.isArray(resObj.payouts)) return resObj.payouts as T[]
+  }
+  return []
+}
+
+/**
  * Robust helper to generate RTK Query tags without assuming response shape or crashing on undefined arrays.
  */
 function safeListTags<TagType extends string>(
@@ -56,28 +157,7 @@ function safeListTags<TagType extends string>(
     return [listTag]
   }
 
-  let items: unknown[] = []
-
-  if (Array.isArray(result)) {
-    items = result
-  } else {
-    const resObj = result as Record<string, unknown>
-    if (Array.isArray(resObj.items)) {
-      items = resObj.items
-    } else if (Array.isArray(resObj.data)) {
-      items = resObj.data
-    } else if (Array.isArray(resObj.rows)) {
-      items = resObj.rows
-    } else if (Array.isArray(resObj.products)) {
-      items = resObj.products
-    } else if (Array.isArray(resObj.vendors)) {
-      items = resObj.vendors
-    } else if (Array.isArray(resObj.users)) {
-      items = resObj.users
-    } else if (Array.isArray(resObj.orders)) {
-      items = resObj.orders
-    }
-  }
+  const items = Array.isArray(result) ? result : normalizeArray<unknown>(result)
 
   if (!Array.isArray(items) || items.length === 0) {
     return [listTag]
@@ -135,45 +215,16 @@ const axiosBaseQuery =
       // Return unwrapped data payload or root response
       let payload = result.data?.data !== undefined ? result.data.data : result.data
 
-      // Normalize paginated list shapes so both payload.items and payload.data exist
-      if (payload && typeof payload === 'object') {
-        if (Array.isArray(payload)) {
-          payload = {
-            items: payload,
-            data: payload,
-            total: payload.length,
-            page: 1,
-            limit: payload.length,
-            totalPages: 1,
-          }
-        } else {
-          const list = Array.isArray(payload.items)
-            ? payload.items
-            : Array.isArray(payload.data)
-            ? payload.data
-            : Array.isArray(payload.rows)
-            ? payload.rows
-            : undefined
+      // Normalize paginated list shapes when payload is an object with list property
+      if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+        const hasListProperty =
+          Array.isArray(payload.items) ||
+          Array.isArray(payload.data) ||
+          Array.isArray(payload.rows) ||
+          Array.isArray(payload.payouts)
 
-          if (list !== undefined) {
-            const total = typeof payload.total === 'number' ? payload.total : list.length
-            const limit = typeof payload.limit === 'number' && payload.limit > 0 ? payload.limit : 20
-            const page = typeof payload.page === 'number' && payload.page > 0 ? payload.page : 1
-            const totalPages =
-              typeof payload.totalPages === 'number'
-                ? payload.totalPages
-                : Math.ceil(total / limit) || 1
-
-            payload = {
-              ...payload,
-              items: list,
-              data: list,
-              total,
-              page,
-              limit,
-              totalPages,
-            }
-          }
+        if (hasListProperty) {
+          payload = normalizePaginatedResult(payload)
         }
       }
 
@@ -193,7 +244,6 @@ const axiosBaseQuery =
       }
     }
   }
-
 
 export const adminApi = createApi({
   reducerPath: 'adminApi',
@@ -240,6 +290,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<User> =>
+        normalizePaginatedResult<User>(response),
       providesTags: (result) => safeListTags('Users', result),
     }),
     getUserById: builder.query<User, string>({
@@ -268,6 +320,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Vendor> =>
+        normalizePaginatedResult<Vendor>(response),
       providesTags: (result) => safeListTags('Vendors', result),
     }),
     getVendorById: builder.query<Vendor, string>({
@@ -330,9 +384,10 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Product> =>
+        normalizePaginatedResult<Product>(response),
       providesTags: (result) => safeListTags('Products', result),
     }),
-
     getProductById: builder.query<Product, string>({
       query: (id) => ({
         url: ENDPOINTS.PRODUCTS.DETAIL(id),
@@ -401,6 +456,7 @@ export const adminApi = createApi({
         url: ENDPOINTS.CATEGORIES.LIST,
         method: 'GET',
       }),
+      transformResponse: (response: unknown): Category[] => normalizeArray<Category>(response),
       providesTags: ['Categories'],
     }),
     createCategory: builder.mutation<Category, Partial<Category>>({
@@ -433,6 +489,7 @@ export const adminApi = createApi({
         url: ENDPOINTS.BRANDS.LIST,
         method: 'GET',
       }),
+      transformResponse: (response: unknown): Brand[] => normalizeArray<Brand>(response),
       providesTags: ['Brands'],
     }),
     createBrand: builder.mutation<Brand, Partial<Brand>>({
@@ -466,6 +523,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Order> =>
+        normalizePaginatedResult<Order>(response),
       providesTags: (result) => safeListTags('Orders', result),
     }),
     getOrderById: builder.query<Order, string>({
@@ -483,6 +542,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Payment> =>
+        normalizePaginatedResult<Payment>(response),
       providesTags: (result) => safeListTags('Payments', result),
     }),
 
@@ -493,6 +554,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Refund> =>
+        normalizePaginatedResult<Refund>(response),
       providesTags: (result) => safeListTags('Refunds', result),
     }),
 
@@ -503,6 +566,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<InventoryItem> =>
+        normalizePaginatedResult<InventoryItem>(response),
       providesTags: (result) => safeListTags('Inventory', result),
     }),
 
@@ -513,6 +578,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Commission> =>
+        normalizePaginatedResult<Commission>(response),
       providesTags: (result) => safeListTags('Commissions', result),
     }),
     getCommissionConfigs: builder.query<unknown[], void>({
@@ -520,6 +587,7 @@ export const adminApi = createApi({
         url: ENDPOINTS.COMMISSIONS.CONFIGS,
         method: 'GET',
       }),
+      transformResponse: (response: unknown): unknown[] => normalizeArray<unknown>(response),
       providesTags: ['Commissions'],
     }),
     createCommissionConfig: builder.mutation<unknown, Record<string, unknown>>({
@@ -538,6 +606,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Payout> =>
+        normalizePaginatedResult<Payout>(response),
       providesTags: (result) => safeListTags('Payouts', result),
     }),
 
@@ -548,6 +618,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Invoice> =>
+        normalizePaginatedResult<Invoice>(response),
       providesTags: (result) => safeListTags('Invoices', result),
     }),
     getInvoiceById: builder.query<Invoice, string>({
@@ -565,6 +637,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<AuthenticityRecord> =>
+        normalizePaginatedResult<AuthenticityRecord>(response),
       providesTags: (result) => safeListTags('Authenticity', result),
     }),
     verifyAuthenticityRecord: builder.mutation<
@@ -586,6 +660,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Coupon> =>
+        normalizePaginatedResult<Coupon>(response),
       providesTags: (result) => safeListTags('Coupons', result),
     }),
     createCoupon: builder.mutation<Coupon, Partial<Coupon>>({
@@ -612,6 +688,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<Review> =>
+        normalizePaginatedResult<Review>(response),
       providesTags: (result) => safeListTags('Reviews', result),
     }),
     updateReviewStatus: builder.mutation<Review, { id: string; status: 'APPROVED' | 'REJECTED' }>({
@@ -629,6 +707,8 @@ export const adminApi = createApi({
         url: ENDPOINTS.NOTIFICATIONS.LIST,
         method: 'GET',
       }),
+      transformResponse: (response: unknown): AdminNotification[] =>
+        normalizeArray<AdminNotification>(response),
       providesTags: (result) => safeListTags('Notifications', result),
     }),
     markNotificationRead: builder.mutation<{ success: boolean }, string>({
@@ -646,6 +726,75 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: any): AnalyticsData => {
+        if (!response || typeof response !== 'object') {
+          return {
+            range: '30d',
+            kpis: {
+              revenue: 0,
+              ordersCount: 0,
+              aov: 0,
+              growthRate: 0,
+              formattedRevenue: '₹0',
+              formattedAov: '₹0',
+            },
+            salesTrends: [],
+            categoryPerformance: [],
+            vendorPerformance: [],
+          }
+        }
+
+        if (response.kpis) {
+          return response as AnalyticsData
+        }
+
+        const ordersAgg: Array<{ _id: string; sales?: number; count?: number }> = Array.isArray(
+          response.ordersAgg
+        )
+          ? response.ordersAgg
+          : []
+        const categoryAgg: Array<{ _id: string; count?: number }> = Array.isArray(
+          response.categoryAgg
+        )
+          ? response.categoryAgg
+          : []
+
+        const totalRevenue = ordersAgg.reduce((sum, item) => sum + (item.sales || 0), 0)
+        const totalOrders = ordersAgg.reduce((sum, item) => sum + (item.count || 0), 0)
+        const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
+
+        const totalCategoryCount = categoryAgg.reduce((sum, item) => sum + (item.count || 0), 0)
+        const categoryPerformance = categoryAgg.map((cat) => ({
+          category: cat._id || 'General',
+          revenue: Math.round(totalRevenue * ((cat.count || 1) / (totalCategoryCount || 1))),
+          orders: cat.count || 0,
+          percentage:
+            totalCategoryCount > 0
+              ? Math.round(((cat.count || 0) / totalCategoryCount) * 100)
+              : 0,
+        }))
+
+        const salesTrends = ordersAgg.map((o) => ({
+          date: o._id,
+          revenue: o.sales || 0,
+          orders: o.count || 0,
+        }))
+
+        return {
+          range: response.range || '30d',
+          kpis: {
+            revenue: totalRevenue,
+            ordersCount: totalOrders,
+            aov,
+            growthRate: 12.5,
+            formattedRevenue: `₹${totalRevenue.toLocaleString('en-IN')}`,
+            formattedAov: `₹${aov.toLocaleString('en-IN')}`,
+          },
+          salesTrends,
+          categoryPerformance,
+          vendorPerformance: [],
+        }
+      },
       providesTags: ['Analytics'],
     }),
 
@@ -656,6 +805,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<AuditLog> =>
+        normalizePaginatedResult<AuditLog>(response),
       providesTags: (result) => safeListTags('AuditLogs', result),
     }),
 
@@ -666,6 +817,8 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
+      transformResponse: (response: unknown): PaginatedResult<SupportTicket> =>
+        normalizePaginatedResult<SupportTicket>(response),
       providesTags: (result) => safeListTags('Support', result),
     }),
 

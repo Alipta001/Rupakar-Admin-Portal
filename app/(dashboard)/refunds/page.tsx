@@ -30,7 +30,15 @@ export default function RefundsPage() {
     )
   }
 
-  const refunds: Refund[] = (data?.items || []).map((r: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const refunds: Refund[] = rawList.map((r: any) => ({
     id: r.id || r._id || '',
     orderId: r.orderId || r.order?._id || '',
     orderNumber: r.orderNumber || (r.order?.orderNumber ? `#${r.order.orderNumber}` : `#RP-${(r.id || r._id || '').slice(-6).toUpperCase()}`),

@@ -31,7 +31,15 @@ export default function InvoicesPage() {
     )
   }
 
-  const invoices: Invoice[] = (data?.items || []).map((inv: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const invoices: Invoice[] = rawList.map((inv: any) => ({
     id: inv.id || inv._id || '',
     invoiceNumber: inv.invoiceNumber || `INV-${(inv.id || inv._id || '').slice(-6).toUpperCase()}`,
     type: (inv.type || 'Customer') as Invoice['type'],
