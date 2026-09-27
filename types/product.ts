@@ -1,6 +1,6 @@
-export type ProductStatus = 'Approved' | 'Published' | 'Under review' | 'Draft' | 'Rejected' | 'Archived' | 'Processing'
+export type ProductStatus = 'Approved' | 'Published' | 'Under review' | 'Draft' | 'Rejected' | 'Archived' | 'Processing' | 'Edited' | 'Unpublished'
 
-export type ModerationStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED' | 'UNPUBLISHED' | 'ARCHIVED'
+export type ModerationStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED' | 'UNPUBLISHED' | 'ARCHIVED' | 'EDITED'
 
 export interface ProductImageDetail {
   id?: string
@@ -110,6 +110,7 @@ export interface Product {
   reservedStock?: number
   status: ProductStatus
   moderationStatus?: ModerationStatus
+  allowedTransitions?: string[]
   isPublished?: boolean
   thumbnail?: string
   image?: string | null

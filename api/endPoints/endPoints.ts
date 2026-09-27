@@ -33,6 +33,7 @@ export const ENDPOINTS = {
     PUBLISH: (id: string) => `/admin/products/${id}/publish`,
     UNPUBLISH: (id: string) => `/admin/products/${id}/unpublish`,
     ARCHIVE: (id: string) => `/admin/products/${id}/archive`,
+    DELETE: (id: string) => `/admin/products/${id}`,
   },
   CATEGORIES: {
     LIST: '/categories',

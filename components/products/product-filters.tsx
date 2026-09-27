@@ -20,8 +20,10 @@ export function ProductFilters({ statusFilter, onStatusChange }: ProductFiltersP
         <option value="Published">Published</option>
         <option value="Approved">Approved</option>
         <option value="Under review">Under review</option>
+        <option value="Unpublished">Unpublished</option>
         <option value="Processing">Processing</option>
         <option value="Rejected">Rejected</option>
+        <option value="Archived">Archived</option>
       </select>
     </div>
   )

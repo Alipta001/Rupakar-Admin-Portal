@@ -8,7 +8,7 @@ export interface AuthState {
   role: AdminRole | null
   permissions: string[]
   isAuthenticated: boolean
-  status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated' | 'failed'
+  status: 'initializing' | 'idle' | 'loading' | 'authenticated' | 'unauthenticated' | 'failed'
   error: string | null
 }
 
@@ -18,7 +18,7 @@ const initialState: AuthState = {
   role: null,
   permissions: [],
   isAuthenticated: false,
-  status: 'idle',
+  status: 'initializing',
   error: null,
 }
 

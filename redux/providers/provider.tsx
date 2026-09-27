@@ -10,6 +10,8 @@ import axiosInstance from '@/api/axios/axios'
 import { ENDPOINTS } from '@/api/endPoints/endPoints'
 import { setSession, clearSession } from '@/lib/auth/session'
 
+let sessionRestorePromise: Promise<void> | null = null
+
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch()
 
@@ -29,35 +31,36 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       },
     })
 
-    // Attempt initial session restore via backend HttpOnly refresh cookie
-    const restoreSession = async () => {
-      dispatch(setAuthLoading())
-      try {
-        const refreshRes = await axiosInstance.post(ENDPOINTS.AUTH.REFRESH, {})
-        const token =
-          refreshRes.data?.data?.accessToken || refreshRes.data?.accessToken
-        const user = refreshRes.data?.data?.user || refreshRes.data?.user
+    // Attempt initial session restore via backend HttpOnly refresh cookie (single-flight)
+    if (!sessionRestorePromise) {
+      sessionRestorePromise = (async () => {
+        try {
+          const refreshRes = await axiosInstance.post(ENDPOINTS.AUTH.REFRESH, {})
+          const token =
+            refreshRes.data?.data?.accessToken || refreshRes.data?.accessToken
+          const user = refreshRes.data?.data?.user || refreshRes.data?.user
 
-        if (token && user) {
-          dispatch(setCredentials({ accessToken: token, user }))
-          setSession({
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            status: user.status === 'ACTIVE' ? 'Active' : 'Suspended',
-            lastSignIn: 'Active Session',
-            token,
-          })
-        } else {
+          if (token && user) {
+            dispatch(setCredentials({ accessToken: token, user }))
+            setSession({
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              status: user.status === 'ACTIVE' ? 'Active' : 'Suspended',
+              lastSignIn: 'Active Session',
+              token,
+            })
+          } else {
+            dispatch(logout())
+          }
+        } catch {
+          // Not logged in or expired refresh token; set unauthenticated status
           dispatch(logout())
+        } finally {
+          sessionRestorePromise = null
         }
-      } catch {
-        // Not logged in or expired refresh token; set unauthenticated status
-        dispatch(logout())
-      }
+      })()
     }
-
-    restoreSession()
   }, [dispatch])
 
 

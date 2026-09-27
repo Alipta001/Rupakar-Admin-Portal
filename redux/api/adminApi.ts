@@ -460,6 +460,18 @@ export const adminApi = createApi({
         'Notifications',
       ],
     }),
+    deleteProduct: builder.mutation<{ success: boolean; message: string }, string>({
+      query: (id) => ({
+        url: ENDPOINTS.PRODUCTS.DELETE(id),
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Products', id },
+        { type: 'Products', id: 'LIST' },
+        'Dashboard',
+        'Notifications',
+      ],
+    }),
 
     // 5. Categories
     getCategories: builder.query<Category[], void>({
@@ -910,6 +922,7 @@ export const {
   usePublishProductMutation,
   useUnpublishProductMutation,
   useArchiveProductMutation,
+  useDeleteProductMutation,
   useGetCategoriesQuery,
   useCreateCategoryMutation,
   useUpdateCategoryMutation,

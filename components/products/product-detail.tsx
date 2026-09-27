@@ -19,7 +19,10 @@ import {
   Image as ImageIcon,
   Globe,
   EyeOff,
+  Trash2,
+  Archive,
 } from 'lucide-react'
+import { getAdminProductActions } from '@/lib/constants/product-transitions'
 
 export interface ProductDetailModalProps {
   productId?: string | null
@@ -30,6 +33,8 @@ export interface ProductDetailModalProps {
   onReject?: (productId: string) => void
   onPublish?: (productId: string) => void
   onUnpublish?: (productId: string) => void
+  onArchive?: (productId: string) => void
+  onDelete?: (productId: string) => void
 }
 
 export function ProductDetailModal({
@@ -41,6 +46,8 @@ export function ProductDetailModal({
   onReject,
   onPublish,
   onUnpublish,
+  onArchive,
+  onDelete,
 }: ProductDetailModalProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
@@ -102,6 +109,16 @@ export function ProductDetailModal({
   const isPublished = p.status === 'Published' || p.moderationStatus === 'PUBLISHED' || Boolean(p.isPublished)
   const isApproved = p.status === 'Approved' || p.moderationStatus === 'APPROVED' || isPublished
   const isRejected = p.status === 'Rejected' || p.moderationStatus === 'REJECTED'
+
+  const {
+    canPublish,
+    canUnpublish,
+    canApprove,
+    canReject,
+    canArchive,
+    canDelete,
+    isArchived,
+  } = getAdminProductActions(p.status, p.moderationStatus, p.allowedTransitions)
 
   return (
     <div
@@ -556,8 +573,8 @@ export function ProductDetailModal({
                 paddingTop: '16px',
               }}
             >
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {!isApproved && onApprove && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {canApprove && onApprove && (
                   <button
                     type="button"
                     className="button"
@@ -567,17 +584,17 @@ export function ProductDetailModal({
                     <CheckCircle2 size={15} /> Approve Product
                   </button>
                 )}
-                {isApproved && !isPublished && onPublish && (
+                {canPublish && onPublish && (
                   <button
                     type="button"
                     className="button"
                     style={{ background: '#1c64f2', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     onClick={() => onPublish(activeId)}
                   >
-                    <Globe size={15} /> Publish Product
+                    <Globe size={15} /> {isArchived ? 'Restore & Publish' : 'Publish Product'}
                   </button>
                 )}
-                {isPublished && onUnpublish && (
+                {canUnpublish && onUnpublish && (
                   <button
                     type="button"
                     className="button secondary"
@@ -587,7 +604,17 @@ export function ProductDetailModal({
                     <EyeOff size={15} /> Unpublish Product
                   </button>
                 )}
-                {!isRejected && onReject && (
+                {canArchive && onArchive && (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    style={{ color: '#827b72', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => onArchive(activeId)}
+                  >
+                    <Archive size={15} /> Archive Product
+                  </button>
+                )}
+                {canReject && onReject && (
                   <button
                     type="button"
                     className="button secondary"
@@ -595,6 +622,21 @@ export function ProductDetailModal({
                     onClick={() => onReject(activeId)}
                   >
                     <XCircle size={15} /> Reject Product
+                  </button>
+                )}
+                {canDelete && onDelete && (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    style={{ color: '#c93b2b', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to permanently delete this rejected product? This action cannot be undone.')) {
+                        onDelete(activeId)
+                        onClose()
+                      }
+                    }}
+                  >
+                    <Trash2 size={15} /> Delete Product
                   </button>
                 )}
               </div>

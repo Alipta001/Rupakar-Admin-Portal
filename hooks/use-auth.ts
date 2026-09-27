@@ -47,7 +47,7 @@ export function useAuth() {
     user,
     isAuthenticated: isAuthenticated || !!sessionFallback,
     role: role || currentSession?.role || 'Administrator',
-    loading: status === 'loading',
+    loading: status === 'loading' || status === 'initializing',
     logout,
     updateProfile,
   }

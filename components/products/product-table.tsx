@@ -15,6 +15,7 @@ import {
   usePublishProductMutation,
   useUnpublishProductMutation,
   useArchiveProductMutation,
+  useDeleteProductMutation,
 } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -35,6 +36,21 @@ export function ProductTable() {
   const [publishProduct] = usePublishProductMutation()
   const [unpublishProduct] = useUnpublishProductMutation()
   const [archiveProduct] = useArchiveProductMutation()
+  const [deleteProduct] = useDeleteProductMutation()
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      await deleteProduct(productId).unwrap()
+      await refetch()
+      if (selectedProduct && (selectedProduct.id === productId || (selectedProduct as any)._id === productId)) {
+        setSelectedProduct(null)
+      }
+    } catch (err: any) {
+      console.error('Failed to delete rejected product:', err)
+      const errorMsg = err?.data?.message || err?.error || err?.message || 'Failed to delete product'
+      alert(errorMsg)
+    }
+  }
 
   const handleUpdateStatus = async (productId: string, status: string) => {
     try {
@@ -53,8 +69,30 @@ export function ProductTable() {
       if (selectedProduct && (selectedProduct.id === productId || (selectedProduct as any)._id === productId)) {
         setSelectedProduct((prev: any) => {
           if (!prev) return null
-          const nextStatus = status === 'Published' ? 'Published' : status === 'Approved' ? 'Approved' : status === 'Rejected' ? 'Rejected' : prev.status
-          const nextMod = status === 'Published' ? 'PUBLISHED' : status === 'Approved' ? 'APPROVED' : status === 'Rejected' ? 'REJECTED' : prev.moderationStatus
+          const nextStatus =
+            status === 'Published'
+              ? 'Published'
+              : status === 'Approved'
+              ? 'Approved'
+              : status === 'Rejected'
+              ? 'Rejected'
+              : status === 'Archived'
+              ? 'Archived'
+              : status === 'Unpublished'
+              ? 'Unpublished'
+              : prev.status
+          const nextMod =
+            status === 'Published'
+              ? 'PUBLISHED'
+              : status === 'Approved'
+              ? 'APPROVED'
+              : status === 'Rejected'
+              ? 'REJECTED'
+              : status === 'Archived'
+              ? 'ARCHIVED'
+              : status === 'Unpublished'
+              ? 'UNPUBLISHED'
+              : prev.moderationStatus
           return {
             ...prev,
             status: nextStatus,
@@ -63,8 +101,11 @@ export function ProductTable() {
           }
         })
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update product moderation state:', err)
+      const errorMsg =
+        err?.data?.message || err?.error || err?.message || 'Failed to update product status'
+      alert(errorMsg)
     }
   }
 
@@ -91,13 +132,16 @@ export function ProductTable() {
     : []
 
   const products: Product[] = rawList.map((p: any) => {
+    const rawUpper = String(p.status || '').toUpperCase().replace(/\s+/g, '_')
     let uiStatus: Product['status'] = 'Under review'
-    if (p.status === 'PUBLISHED') uiStatus = 'Published'
-    else if (p.status === 'APPROVED') uiStatus = 'Approved'
-    else if (p.status === 'REJECTED') uiStatus = 'Rejected'
-    else if (p.status === 'DRAFT') uiStatus = 'Draft'
-    else if (p.status === 'ARCHIVED') uiStatus = 'Archived'
-    else if (p.status === 'SUBMITTED' || p.status === 'UNDER_REVIEW') uiStatus = 'Under review'
+    if (rawUpper === 'PUBLISHED') uiStatus = 'Published'
+    else if (rawUpper === 'APPROVED') uiStatus = 'Approved'
+    else if (rawUpper === 'REJECTED') uiStatus = 'Rejected'
+    else if (rawUpper === 'DRAFT') uiStatus = 'Draft'
+    else if (rawUpper === 'ARCHIVED') uiStatus = 'Archived'
+    else if (rawUpper === 'UNPUBLISHED') uiStatus = 'Unpublished'
+    else if (rawUpper === 'EDITED') uiStatus = 'Edited'
+    else if (rawUpper === 'SUBMITTED' || rawUpper === 'UNDER_REVIEW') uiStatus = 'Under review'
 
     return {
       ...p,
@@ -111,6 +155,7 @@ export function ProductTable() {
       stock: p.stock ?? p.availableStock ?? p.inventory?.available ?? 0,
       status: uiStatus,
       moderationStatus: p.status,
+      allowedTransitions: p.allowedTransitions,
       isPublished: p.isPublished,
       thumbnail: p.thumbnail || p.image || p.images?.[0]?.url || (typeof p.images?.[0] === 'string' ? p.images[0] : undefined),
     }
@@ -157,7 +202,9 @@ export function ProductTable() {
           productId={product.id}
           status={product.status}
           moderationStatus={product.moderationStatus}
+          allowedTransitions={product.allowedTransitions}
           onUpdateStatus={handleUpdateStatus}
+          onDeleteProduct={handleDeleteProduct}
         />
       ),
     },
@@ -196,6 +243,8 @@ export function ProductTable() {
         onReject={(id) => handleUpdateStatus(id, 'Rejected')}
         onPublish={(id) => handleUpdateStatus(id, 'Published')}
         onUnpublish={(id) => handleUpdateStatus(id, 'Unpublished')}
+        onArchive={(id) => handleUpdateStatus(id, 'Archived')}
+        onDelete={handleDeleteProduct}
       />
     </>
   )

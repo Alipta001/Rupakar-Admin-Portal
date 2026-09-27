@@ -1,23 +1,51 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Archive, CheckCircle2, EyeOff, Globe, MoreHorizontal, XCircle } from 'lucide-react'
+import { Archive, CheckCircle2, EyeOff, Globe, MoreHorizontal, Trash2, XCircle } from 'lucide-react'
+import {
+  ADMIN_ALLOWED_TRANSITIONS,
+  getAdminProductActions,
+} from '@/lib/constants/product-transitions'
+
+export { ADMIN_ALLOWED_TRANSITIONS, getAdminProductActions }
 
 export interface ProductActionsProps {
   productId: string
   status: string
   moderationStatus?: string
+  allowedTransitions?: string[]
   onUpdateStatus?: (productId: string, status: string) => void
+  onDeleteProduct?: (productId: string) => void
 }
 
-export function ProductActions({ productId, status, moderationStatus, onUpdateStatus }: ProductActionsProps) {
+export function ProductActions({
+  productId,
+  status,
+  moderationStatus,
+  allowedTransitions,
+  onUpdateStatus,
+  onDeleteProduct,
+}: ProductActionsProps) {
   const [open, setOpen] = useState(false)
 
-  const isApproved = status === 'Approved' || moderationStatus === 'APPROVED'
-  const isPublished = status === 'Published' || moderationStatus === 'PUBLISHED'
-  const isUnderReview = status === 'Under review' || moderationStatus === 'SUBMITTED' || moderationStatus === 'UNDER_REVIEW'
-  const isRejected = status === 'Rejected' || moderationStatus === 'REJECTED'
-  const isUnpublished = status === 'Unpublished' || moderationStatus === 'UNPUBLISHED'
+  const capabilities = getAdminProductActions(
+    status,
+    moderationStatus,
+    allowedTransitions
+  )
+
+  const {
+    canPublish,
+    canUnpublish,
+    canApprove,
+    canReject,
+    canArchive,
+    canDelete,
+    isArchived,
+  } = capabilities
+
+  const hasAnyAction =
+    canPublish || canUnpublish || canApprove || canReject || canArchive || canDelete
 
   return (
     <div style={{ position: 'relative' }}>
@@ -42,11 +70,10 @@ export function ProductActions({ productId, status, moderationStatus, onUpdateSt
             borderRadius: '6px',
             boxShadow: '0 8px 16px rgba(0,0,0,0.08)',
             padding: '4px',
-            minWidth: '140px',
+            minWidth: '150px',
           }}
         >
-          {/* Allow publishing if approved or unpublished */}
-          {(isApproved || isUnpublished) && !isPublished && (
+          {canPublish && (
             <button
               type="button"
               style={{
@@ -68,12 +95,11 @@ export function ProductActions({ productId, status, moderationStatus, onUpdateSt
                 onUpdateStatus?.(productId, 'Published')
               }}
             >
-              <Globe size={14} /> Publish item
+              <Globe size={14} /> {isArchived ? 'Restore & Publish' : 'Publish item'}
             </button>
           )}
 
-          {/* Allow unpublishing if currently published */}
-          {isPublished && (
+          {canUnpublish && (
             <button
               type="button"
               style={{
@@ -99,8 +125,7 @@ export function ProductActions({ productId, status, moderationStatus, onUpdateSt
             </button>
           )}
 
-          {/* Allow approving if under review or rejected */}
-          {(isUnderReview || isRejected) && (
+          {canApprove && (
             <button
               type="button"
               style={{
@@ -126,8 +151,7 @@ export function ProductActions({ productId, status, moderationStatus, onUpdateSt
             </button>
           )}
 
-          {/* Allow rejecting if not already rejected */}
-          {!isRejected && (
+          {canReject && (
             <button
               type="button"
               style={{
@@ -153,8 +177,7 @@ export function ProductActions({ productId, status, moderationStatus, onUpdateSt
             </button>
           )}
 
-          {/* Allow archiving if published or unpublished */}
-          {(isPublished || isUnpublished) && (
+          {canArchive && (
             <button
               type="button"
               style={{
@@ -178,6 +201,51 @@ export function ProductActions({ productId, status, moderationStatus, onUpdateSt
             >
               <Archive size={14} /> Archive
             </button>
+          )}
+
+          {canDelete && (
+            <button
+              type="button"
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                border: 0,
+                background: 'transparent',
+                padding: '6px 8px',
+                fontSize: '11px',
+                borderRadius: '4px',
+                color: '#c93b2b',
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                setOpen(false)
+                if (
+                  window.confirm(
+                    'Are you sure you want to permanently delete this rejected product? This action cannot be undone.'
+                  )
+                ) {
+                  onDeleteProduct?.(productId)
+                }
+              }}
+            >
+              <Trash2 size={14} /> Delete product
+            </button>
+          )}
+
+          {!hasAnyAction && (
+            <div
+              style={{
+                padding: '6px 8px',
+                fontSize: '11px',
+                color: '#827b72',
+                fontStyle: 'italic',
+              }}
+            >
+              No actions available
+            </div>
           )}
         </div>
       )}
