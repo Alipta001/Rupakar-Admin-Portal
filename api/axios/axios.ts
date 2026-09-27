@@ -1,7 +1,14 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+const resolveApiBaseUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, '')
+  }
+  return 'http://localhost:4000/api/v1'
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()
 
 let currentAccessToken: string | null = null
 let onLogoutCallback: (() => void) | null = null
@@ -33,9 +40,18 @@ export const axiosInstance = axios.create({
   },
 })
 
-// Request Interceptor: Attach Bearer token
+// Request Interceptor: Attach Bearer token & prevent duplicate /api/v1 prefixes
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Prevent accidental /api/v1/api/v1 duplication
+    if (config.url) {
+      if (config.url.startsWith('/api/v1/')) {
+        config.url = config.url.replace(/^\/api\/v1/, '')
+      } else if (config.url.startsWith('api/v1/')) {
+        config.url = '/' + config.url.replace(/^api\/v1\/?/, '')
+      }
+    }
+
     if (currentAccessToken && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${currentAccessToken}`
     }
@@ -43,6 +59,7 @@ axiosInstance.interceptors.request.use(
   },
   (error: unknown) => Promise.reject(error)
 )
+
 
 // Single-flight refresh token queue state
 let isRefreshing = false

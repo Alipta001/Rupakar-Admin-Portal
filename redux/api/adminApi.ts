@@ -35,12 +35,68 @@ export interface QueryParams {
 
 export interface PaginatedResult<T> {
   items: T[]
+  data?: T[]
   total: number
   page: number
   limit: number
   totalPages: number
   hasNextPage?: boolean
   hasPrevPage?: boolean
+}
+
+/**
+ * Robust helper to generate RTK Query tags without assuming response shape or crashing on undefined arrays.
+ */
+function safeListTags<TagType extends string>(
+  tagType: TagType,
+  result: unknown
+): Array<{ type: TagType; id: string | number }> {
+  const listTag = { type: tagType, id: 'LIST' as const }
+  if (!result || typeof result !== 'object') {
+    return [listTag]
+  }
+
+  let items: unknown[] = []
+
+  if (Array.isArray(result)) {
+    items = result
+  } else {
+    const resObj = result as Record<string, unknown>
+    if (Array.isArray(resObj.items)) {
+      items = resObj.items
+    } else if (Array.isArray(resObj.data)) {
+      items = resObj.data
+    } else if (Array.isArray(resObj.rows)) {
+      items = resObj.rows
+    } else if (Array.isArray(resObj.products)) {
+      items = resObj.products
+    } else if (Array.isArray(resObj.vendors)) {
+      items = resObj.vendors
+    } else if (Array.isArray(resObj.users)) {
+      items = resObj.users
+    } else if (Array.isArray(resObj.orders)) {
+      items = resObj.orders
+    }
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return [listTag]
+  }
+
+  const tagList: Array<{ type: TagType; id: string | number }> = []
+
+  for (const item of items) {
+    if (item && typeof item === 'object') {
+      const record = item as { id?: string | number; _id?: string | number }
+      const id = record.id ?? record._id
+      if (id !== undefined && id !== null && id !== '') {
+        tagList.push({ type: tagType, id })
+      }
+    }
+  }
+
+  tagList.push(listTag)
+  return tagList
 }
 
 const axiosBaseQuery =
@@ -64,8 +120,63 @@ const axiosBaseQuery =
         params,
         headers,
       })
+
+      // If backend explicitly returned { success: false }, treat as error
+      if (result.data && typeof result.data === 'object' && result.data.success === false) {
+        return {
+          error: {
+            status: result.status,
+            data: result.data,
+            message: result.data.message || result.data.error || 'Request unsuccessful',
+          },
+        }
+      }
+
       // Return unwrapped data payload or root response
-      const payload = result.data?.data !== undefined ? result.data.data : result.data
+      let payload = result.data?.data !== undefined ? result.data.data : result.data
+
+      // Normalize paginated list shapes so both payload.items and payload.data exist
+      if (payload && typeof payload === 'object') {
+        if (Array.isArray(payload)) {
+          payload = {
+            items: payload,
+            data: payload,
+            total: payload.length,
+            page: 1,
+            limit: payload.length,
+            totalPages: 1,
+          }
+        } else {
+          const list = Array.isArray(payload.items)
+            ? payload.items
+            : Array.isArray(payload.data)
+            ? payload.data
+            : Array.isArray(payload.rows)
+            ? payload.rows
+            : undefined
+
+          if (list !== undefined) {
+            const total = typeof payload.total === 'number' ? payload.total : list.length
+            const limit = typeof payload.limit === 'number' && payload.limit > 0 ? payload.limit : 20
+            const page = typeof payload.page === 'number' && payload.page > 0 ? payload.page : 1
+            const totalPages =
+              typeof payload.totalPages === 'number'
+                ? payload.totalPages
+                : Math.ceil(total / limit) || 1
+
+            payload = {
+              ...payload,
+              items: list,
+              data: list,
+              total,
+              page,
+              limit,
+              totalPages,
+            }
+          }
+        }
+      }
+
       return { data: payload }
     } catch (axiosError) {
       const err = axiosError as AxiosError<{ message?: string; error?: string; errors?: unknown }>
@@ -82,6 +193,7 @@ const axiosBaseQuery =
       }
     }
   }
+
 
 export const adminApi = createApi({
   reducerPath: 'adminApi',
@@ -128,13 +240,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.items.map(({ id }) => ({ type: 'Users' as const, id })),
-              { type: 'Users', id: 'LIST' },
-            ]
-          : [{ type: 'Users', id: 'LIST' }],
+      providesTags: (result) => safeListTags('Users', result),
     }),
     getUserById: builder.query<User, string>({
       query: (id) => ({
@@ -162,13 +268,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.items.map(({ id }) => ({ type: 'Vendors' as const, id })),
-              { type: 'Vendors', id: 'LIST' },
-            ]
-          : [{ type: 'Vendors', id: 'LIST' }],
+      providesTags: (result) => safeListTags('Vendors', result),
     }),
     getVendorById: builder.query<Vendor, string>({
       query: (id) => ({
@@ -230,14 +330,9 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.items.map(({ id }) => ({ type: 'Products' as const, id })),
-              { type: 'Products', id: 'LIST' },
-            ]
-          : [{ type: 'Products', id: 'LIST' }],
+      providesTags: (result) => safeListTags('Products', result),
     }),
+
     getProductById: builder.query<Product, string>({
       query: (id) => ({
         url: ENDPOINTS.PRODUCTS.DETAIL(id),
@@ -371,13 +466,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.items.map(({ id }) => ({ type: 'Orders' as const, id })),
-              { type: 'Orders', id: 'LIST' },
-            ]
-          : [{ type: 'Orders', id: 'LIST' }],
+      providesTags: (result) => safeListTags('Orders', result),
     }),
     getOrderById: builder.query<Order, string>({
       query: (id) => ({
@@ -394,7 +483,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Payments'],
+      providesTags: (result) => safeListTags('Payments', result),
     }),
 
     // 9. Refunds
@@ -404,7 +493,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Refunds'],
+      providesTags: (result) => safeListTags('Refunds', result),
     }),
 
     // 10. Inventory
@@ -414,7 +503,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Inventory'],
+      providesTags: (result) => safeListTags('Inventory', result),
     }),
 
     // 11. Commissions
@@ -424,7 +513,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Commissions'],
+      providesTags: (result) => safeListTags('Commissions', result),
     }),
     getCommissionConfigs: builder.query<unknown[], void>({
       query: () => ({
@@ -449,7 +538,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Payouts'],
+      providesTags: (result) => safeListTags('Payouts', result),
     }),
 
     // 13. Invoices
@@ -459,7 +548,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Invoices'],
+      providesTags: (result) => safeListTags('Invoices', result),
     }),
     getInvoiceById: builder.query<Invoice, string>({
       query: (id) => ({
@@ -476,7 +565,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Authenticity'],
+      providesTags: (result) => safeListTags('Authenticity', result),
     }),
     verifyAuthenticityRecord: builder.mutation<
       AuthenticityRecord,
@@ -497,7 +586,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Coupons'],
+      providesTags: (result) => safeListTags('Coupons', result),
     }),
     createCoupon: builder.mutation<Coupon, Partial<Coupon>>({
       query: (data) => ({
@@ -523,7 +612,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Reviews'],
+      providesTags: (result) => safeListTags('Reviews', result),
     }),
     updateReviewStatus: builder.mutation<Review, { id: string; status: 'APPROVED' | 'REJECTED' }>({
       query: ({ id, status }) => ({
@@ -540,7 +629,7 @@ export const adminApi = createApi({
         url: ENDPOINTS.NOTIFICATIONS.LIST,
         method: 'GET',
       }),
-      providesTags: ['Notifications'],
+      providesTags: (result) => safeListTags('Notifications', result),
     }),
     markNotificationRead: builder.mutation<{ success: boolean }, string>({
       query: (id) => ({
@@ -567,7 +656,7 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['AuditLogs'],
+      providesTags: (result) => safeListTags('AuditLogs', result),
     }),
 
     // 20. Support
@@ -577,8 +666,9 @@ export const adminApi = createApi({
         method: 'GET',
         params: params || {},
       }),
-      providesTags: ['Support'],
+      providesTags: (result) => safeListTags('Support', result),
     }),
+
     updateSupportTicket: builder.mutation<
       SupportTicket,
       { ticketId: string; status?: string; responseMessage?: string; priority?: string }

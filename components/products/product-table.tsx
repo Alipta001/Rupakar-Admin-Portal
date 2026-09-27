@@ -67,7 +67,16 @@ export function ProductTable() {
     )
   }
 
-  const products: Product[] = (data?.items || []).map((p: any) => {
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const products: Product[] = rawList.map((p: any) => {
+
     let uiStatus: Product['status'] = 'Under review'
     if (p.status === 'APPROVED') uiStatus = 'Approved'
     else if (p.status === 'REJECTED') uiStatus = 'Rejected'

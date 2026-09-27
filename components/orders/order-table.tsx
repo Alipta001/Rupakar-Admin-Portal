@@ -36,7 +36,16 @@ export function OrderTable() {
     )
   }
 
-  const orders: Order[] = (data?.items || []).map((o: any) => {
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const orders: Order[] = rawList.map((o: any) => {
+
     let uiStatus: Order['status'] = 'Processing'
     const s = String(o.status || '').toUpperCase()
     if (s === 'PENDING') uiStatus = 'Pending'

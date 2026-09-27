@@ -59,7 +59,16 @@ export function VendorTable() {
     )
   }
 
-  const vendors: Vendor[] = (data?.items || []).map((v: any) => {
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const vendors: Vendor[] = rawList.map((v: any) => {
+
     let uiStatus: Vendor['status'] = 'Under review'
     if (v.status === 'APPROVED' || v.status === 'Approved') uiStatus = 'Approved'
     else if (v.status === 'REJECTED' || v.status === 'Rejected') uiStatus = 'Rejected'

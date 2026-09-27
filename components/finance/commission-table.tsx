@@ -29,7 +29,15 @@ export function CommissionTable() {
     )
   }
 
-  const commissions: Commission[] = (data?.items || []).map((com: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const commissions: Commission[] = rawList.map((com: any) => ({
     id: com.id || com._id || '',
     orderNumber: com.orderNumber || (com.orderId ? `#RP-${String(com.orderId).slice(-6).toUpperCase()}` : '#RP-ORD'),
     vendorName: com.vendorName || com.vendorId?.name || 'Artisan Partner',

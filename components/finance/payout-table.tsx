@@ -29,7 +29,15 @@ export function PayoutTable() {
     )
   }
 
-  const payouts: Payout[] = (data?.items || []).map((p: any) => {
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const payouts: Payout[] = rawList.map((p: any) => {
     let uiStatus: Payout['status'] = 'Ready to process'
     if (p.status === 'COMPLETED' || p.status === 'Completed') uiStatus = 'Completed'
     else if (p.status === 'PROCESSING' || p.status === 'Processing') uiStatus = 'Processing'

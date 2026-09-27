@@ -47,7 +47,16 @@ export function UserTable() {
     )
   }
 
-  const users: User[] = (data?.items || []).map((u: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const users: User[] = rawList.map((u: any) => ({
+
     id: u.id || u._id || '',
     name: u.name || 'Customer',
     email: u.email || '',

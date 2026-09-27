@@ -29,7 +29,15 @@ export function PaymentTable() {
     )
   }
 
-  const payments: Payment[] = (data?.items || []).map((p: any) => ({
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const payments: Payment[] = rawList.map((p: any) => ({
     id: p.id || p._id || '',
     orderId: p.orderId || p.order?._id || '',
     orderNumber: p.orderNumber || (p.order?.orderNumber ? `#${p.order.orderNumber}` : `#RP-${(p.id || p._id || '').slice(-6).toUpperCase()}`),

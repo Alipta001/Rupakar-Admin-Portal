@@ -32,7 +32,15 @@ export function InventoryTable() {
     )
   }
 
-  const items: InventoryItem[] = (data?.items || []).map((item: any) => {
+  const rawList = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray(data)
+    ? data
+    : []
+
+  const items: InventoryItem[] = rawList.map((item: any) => {
     let uiStatus: InventoryItem['status'] = 'In Stock'
     if (item.availableStock <= 0) uiStatus = 'Out of Stock'
     else if (item.availableStock <= (item.safetyThreshold || 5)) uiStatus = 'Low Stock'
