@@ -41,7 +41,7 @@ export function VendorDetailModal({
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px' }}>{vendor.name}</h2>
+            <h2 style={{ margin: 0, fontSize: '18px' }}>{vendor.businessName || vendor.name}</h2>
             <span style={{ fontSize: '11px', color: '#827b72' }}>ID: {vendor.code} · {vendor.location}</span>
           </div>
           <VendorStatusBadge status={vendor.status} />
@@ -49,20 +49,28 @@ export function VendorDetailModal({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '12px' }}>
           <div>
-            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Owner</span>
-            <strong>{vendor.ownerName}</strong>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Seller Name</span>
+            <strong>{vendor.sellerName || vendor.ownerName || '—'}</strong>
+          </div>
+          <div>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Business / Store Name</span>
+            <strong>{vendor.businessName || vendor.name || '—'}</strong>
+          </div>
+          <div>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Seller Email</span>
+            <span>{vendor.sellerEmail || vendor.email || '—'}</span>
+          </div>
+          <div>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Seller Phone</span>
+            <span>{vendor.sellerPhone || vendor.phone || '—'}</span>
           </div>
           <div>
             <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Craft / Category</span>
-            <strong>{vendor.category}</strong>
+            <strong>{vendor.category || '—'}</strong>
           </div>
           <div>
-            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Email</span>
-            <span>{vendor.email}</span>
-          </div>
-          <div>
-            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Phone</span>
-            <span>{vendor.phone}</span>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Location</span>
+            <span>{vendor.location || '—'}</span>
           </div>
           <div>
             <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>GMV</span>

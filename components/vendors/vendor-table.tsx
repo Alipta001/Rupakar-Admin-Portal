@@ -40,8 +40,16 @@ export function VendorTable() {
       } else if (status === 'Suspended') {
         await suspendVendor({ id: vendorId, reason: 'Account suspended by administrator' }).unwrap()
       }
-    } catch (err) {
+      await refetch()
+    } catch (err: any) {
       console.error('Failed to update vendor status:', err)
+      const errorMsg =
+        err?.data?.message ||
+        err?.data?.error ||
+        err?.error ||
+        err?.message ||
+        'Failed to update vendor status'
+      alert(errorMsg)
     }
   }
 
@@ -68,28 +76,57 @@ export function VendorTable() {
     : []
 
   const vendors: Vendor[] = rawList.map((v: any) => {
-
     let uiStatus: Vendor['status'] = 'Under review'
     if (v.status === 'APPROVED' || v.status === 'Approved') uiStatus = 'Approved'
     else if (v.status === 'REJECTED' || v.status === 'Rejected') uiStatus = 'Rejected'
     else if (v.status === 'SUSPENDED' || v.status === 'Suspended') uiStatus = 'Suspended'
+    else if (v.status === 'PENDING' || v.status === 'Pending') uiStatus = 'Pending'
+
+    const businessName = v.businessName || v.storeName || ''
+    const sellerName =
+      v.sellerName ||
+      v.user?.name ||
+      (v.ownerUserId && typeof v.ownerUserId === 'object' ? v.ownerUserId.name : '') ||
+      v.ownerName ||
+      v.contactPerson ||
+      v.legalName ||
+      ''
+    const sellerEmail =
+      v.sellerEmail ||
+      v.user?.email ||
+      (v.ownerUserId && typeof v.ownerUserId === 'object' ? v.ownerUserId.email : '') ||
+      v.email ||
+      ''
+    const sellerPhone =
+      v.sellerPhone ||
+      v.user?.phone ||
+      (v.ownerUserId && typeof v.ownerUserId === 'object' ? v.ownerUserId.phone : '') ||
+      v.phone ||
+      ''
+
+    const primaryName = businessName || v.name || sellerName || 'Artisan Partner'
 
     return {
       id: v.id || v._id || '',
       code: v.code || `VND-${(v.id || v._id || '').slice(-4).toUpperCase()}`,
-      name: v.storeName || v.name || 'Artisan Partner',
+      name: primaryName,
+      businessName: businessName || undefined,
+      sellerName: sellerName || undefined,
+      sellerEmail: sellerEmail || undefined,
+      sellerPhone: sellerPhone || undefined,
       category: v.category || 'Handcrafted Heritage',
-      location: v.location || (v.address ? `${v.address.city || ''}, ${v.address.state || ''}` : 'India'),
-      ownerName: v.ownerName || v.contactPerson || v.name || 'Partner',
-      email: v.email || '',
-      phone: v.phone || '',
+      location: v.location || (v.address ? `${v.address.city || ''}, ${v.address.state || ''}`.replace(/^, |, $/g, '') : '') || 'India',
+      ownerName: sellerName || 'Partner',
+      email: sellerEmail,
+      phone: sellerPhone,
       status: uiStatus,
+      rawStatus: v.status,
       verified: v.verified || v.status === 'APPROVED',
       productsCount: v.productsCount || 0,
       ordersCount: v.ordersCount || 0,
       grossMerchandiseValue: v.grossMerchandiseValue || v.totalGmv || 0,
       formattedGmv: formatINR(v.grossMerchandiseValue || v.totalGmv || 0),
-      initials: (v.storeName || v.name || 'AP').slice(0, 2).toUpperCase(),
+      initials: (businessName || sellerName || 'AP').slice(0, 2).toUpperCase(),
     }
   })
 
@@ -99,7 +136,12 @@ export function VendorTable() {
       className: 'primary-cell',
       cell: (vendor) => (
         <div style={{ cursor: 'pointer' }} onClick={() => setSelectedVendor(vendor)}>
-          <strong>{vendor.name}</strong>
+          <strong>{vendor.businessName || vendor.name}</strong>
+          <span className="subtle">
+            {vendor.sellerName ? `Seller: ${vendor.sellerName}` : ''}
+            {vendor.sellerName && vendor.email ? ' · ' : ''}
+            {!vendor.sellerName && vendor.email ? vendor.email : ''}
+          </span>
           <span className="subtle">ID: {vendor.code}</span>
         </div>
       ),
@@ -147,11 +189,17 @@ export function VendorTable() {
           />
         }
         onSearchChange={setSearchQuery}
-        searchFilter={(vendor, query) =>
-          vendor.name.toLowerCase().includes(query.toLowerCase()) ||
-          vendor.category.toLowerCase().includes(query.toLowerCase()) ||
-          vendor.location.toLowerCase().includes(query.toLowerCase())
-        }
+        searchFilter={(vendor, query) => {
+          const q = query.toLowerCase()
+          return (
+            vendor.name.toLowerCase().includes(q) ||
+            (vendor.businessName ? vendor.businessName.toLowerCase().includes(q) : false) ||
+            (vendor.sellerName ? vendor.sellerName.toLowerCase().includes(q) : false) ||
+            (vendor.email ? vendor.email.toLowerCase().includes(q) : false) ||
+            vendor.category.toLowerCase().includes(q) ||
+            vendor.location.toLowerCase().includes(q)
+          )
+        }}
       />
 
       <VendorDetailModal

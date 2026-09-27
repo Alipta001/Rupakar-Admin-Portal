@@ -331,12 +331,17 @@ export const adminApi = createApi({
       }),
       providesTags: (_result, _error, id) => [{ type: 'Vendors', id }],
     }),
-    approveVendor: builder.mutation<Vendor, { id: string; commissionRate?: number }>({
-      query: ({ id, commissionRate }) => ({
-        url: ENDPOINTS.VENDORS.APPROVE(id),
-        method: 'PATCH',
-        data: { commissionRate },
-      }),
+    approveVendor: builder.mutation<Vendor, { id: string; commissionRate?: number; reason?: string }>({
+      query: ({ id, commissionRate, reason }) => {
+        const data: Record<string, unknown> = {}
+        if (typeof commissionRate === 'number') data.commissionRate = commissionRate
+        if (typeof reason === 'string' && reason.trim()) data.reason = reason.trim()
+        return {
+          url: ENDPOINTS.VENDORS.APPROVE(id),
+          method: 'PATCH',
+          data,
+        }
+      },
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Vendors', id },
         { type: 'Vendors', id: 'LIST' },
