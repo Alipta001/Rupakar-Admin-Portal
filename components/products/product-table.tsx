@@ -21,6 +21,7 @@ import { ErrorState } from '@/components/shared/error-state'
 
 export function ProductTable() {
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -48,6 +49,7 @@ export function ProductTable() {
       } else if (status === 'Archived') {
         await archiveProduct({ id: productId }).unwrap()
       }
+      await refetch()
     } catch (err) {
       console.error('Failed to update product moderation state:', err)
     }
@@ -76,26 +78,27 @@ export function ProductTable() {
     : []
 
   const products: Product[] = rawList.map((p: any) => {
-
     let uiStatus: Product['status'] = 'Under review'
-    if (p.status === 'APPROVED') uiStatus = 'Approved'
+    if (p.status === 'APPROVED' || p.status === 'PUBLISHED') uiStatus = 'Approved'
     else if (p.status === 'REJECTED') uiStatus = 'Rejected'
     else if (p.status === 'DRAFT') uiStatus = 'Draft'
     else if (p.status === 'ARCHIVED') uiStatus = 'Archived'
+    else if (p.status === 'SUBMITTED' || p.status === 'UNDER_REVIEW') uiStatus = 'Under review'
 
     return {
+      ...p,
       id: p.id || p._id || '',
       sku: p.sku || `SKU-${(p.id || p._id || '').slice(-6).toUpperCase()}`,
       title: p.title || p.name || 'Artisan Craft Item',
-      vendorName: p.vendorName || p.vendor?.storeName || p.vendorId?.name || 'Artisan Guild',
+      vendorName: p.vendorName || p.vendor?.businessName || p.vendor?.storeName || p.vendorId?.name || 'Artisan Guild',
       category: p.categoryName || p.category?.name || (typeof p.category === 'string' ? p.category : 'Handicrafts'),
       price: p.price ?? 0,
       formattedPrice: formatINR(p.price ?? 0),
-      stock: p.stock ?? p.inventory?.available ?? 0,
+      stock: p.stock ?? p.availableStock ?? p.inventory?.available ?? 0,
       status: uiStatus,
       moderationStatus: p.status,
       isPublished: p.isPublished,
-      thumbnail: p.thumbnail || p.images?.[0]?.url,
+      thumbnail: p.thumbnail || p.image || p.images?.[0]?.url || (typeof p.images?.[0] === 'string' ? p.images[0] : undefined),
     }
   })
 
@@ -104,7 +107,13 @@ export function ProductTable() {
       header: 'Product',
       className: 'primary-cell',
       cell: (product) => (
-        <div style={{ cursor: 'pointer' }} onClick={() => setSelectedProduct(product)}>
+        <div
+          style={{ cursor: 'pointer' }}
+          onClick={() => {
+            setSelectedProductId(product.id)
+            setSelectedProduct(product)
+          }}
+        >
           <strong>{product.title}</strong>
           <span className="subtle">SKU: {product.sku}</span>
         </div>
@@ -115,7 +124,7 @@ export function ProductTable() {
       cell: (product) => (
         <>
           <span>{product.vendorName}</span>
-          <span className="subtle">{product.category}</span>
+          <span className="subtle">{typeof product.category === 'string' ? product.category : product.category?.name}</span>
         </>
       ),
     },
@@ -156,14 +165,20 @@ export function ProductTable() {
         searchFilter={(product, query) =>
           product.title.toLowerCase().includes(query.toLowerCase()) ||
           product.vendorName.toLowerCase().includes(query.toLowerCase()) ||
-          product.category.toLowerCase().includes(query.toLowerCase())
+          (typeof product.category === 'string' && product.category.toLowerCase().includes(query.toLowerCase()))
         }
       />
 
       <ProductDetailModal
+        productId={selectedProductId}
         product={selectedProduct}
-        isOpen={!!selectedProduct}
-        onClose={() => setSelectedProduct(null)}
+        isOpen={Boolean(selectedProductId || selectedProduct)}
+        onClose={() => {
+          setSelectedProductId(null)
+          setSelectedProduct(null)
+        }}
+        onApprove={(id) => handleUpdateStatus(id, 'Approved')}
+        onReject={(id) => handleUpdateStatus(id, 'Rejected')}
       />
     </>
   )

@@ -12,7 +12,9 @@ import { ErrorState } from '@/components/shared/error-state'
 
 export default function NotificationsPage() {
   const [searchQuery, setSearchQuery] = useState('')
-  const { data: rawNotifications, isLoading, error, refetch } = useGetNotificationsQuery()
+  const { data: rawNotifications, isLoading, error, refetch } = useGetNotificationsQuery(undefined, {
+    pollingInterval: 30000,
+  })
   const [markRead] = useMarkNotificationReadMutation()
 
   if (isLoading) {
@@ -42,7 +44,8 @@ export default function NotificationsPage() {
     title: n.title || 'System Notification',
     message: n.message || '',
     type: n.type || 'SYSTEM',
-    read: n.read || n.isRead || false,
+    read: Boolean(n.readAt || n.read || n.isRead || false),
+    readAt: n.readAt || null,
     createdAt: n.createdAt || new Date().toISOString(),
   }))
 

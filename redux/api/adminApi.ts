@@ -393,6 +393,12 @@ export const adminApi = createApi({
         url: ENDPOINTS.PRODUCTS.DETAIL(id),
         method: 'GET',
       }),
+      transformResponse: (response: any): Product => {
+        if (response && typeof response === 'object' && 'data' in response) {
+          return (response.data as Product) || (response as Product)
+        }
+        return response as Product
+      },
       providesTags: (_result, _error, id) => [{ type: 'Products', id }],
     }),
     approveProduct: builder.mutation<Product, { id: string }>({
@@ -404,6 +410,7 @@ export const adminApi = createApi({
         { type: 'Products', id },
         { type: 'Products', id: 'LIST' },
         'Dashboard',
+        'Notifications',
       ],
     }),
     rejectProduct: builder.mutation<Product, { id: string; reason: string }>({
@@ -416,6 +423,7 @@ export const adminApi = createApi({
         { type: 'Products', id },
         { type: 'Products', id: 'LIST' },
         'Dashboard',
+        'Notifications',
       ],
     }),
     publishProduct: builder.mutation<Product, { id: string }>({
@@ -427,6 +435,7 @@ export const adminApi = createApi({
         { type: 'Products', id },
         { type: 'Products', id: 'LIST' },
         'Dashboard',
+        'Notifications',
       ],
     }),
     unpublishProduct: builder.mutation<Product, { id: string }>({
@@ -437,6 +446,7 @@ export const adminApi = createApi({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Products', id },
         { type: 'Products', id: 'LIST' },
+        'Notifications',
       ],
     }),
     archiveProduct: builder.mutation<Product, { id: string }>({
@@ -447,6 +457,7 @@ export const adminApi = createApi({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Products', id },
         { type: 'Products', id: 'LIST' },
+        'Notifications',
       ],
     }),
 
