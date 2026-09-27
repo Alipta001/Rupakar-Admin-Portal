@@ -127,6 +127,7 @@ export function VendorTable() {
       grossMerchandiseValue: v.grossMerchandiseValue || v.totalGmv || 0,
       formattedGmv: formatINR(v.grossMerchandiseValue || v.totalGmv || 0),
       initials: (businessName || sellerName || 'AP').slice(0, 2).toUpperCase(),
+      bankAccount: v.bankAccount ?? undefined,
     }
   })
 
@@ -161,7 +162,34 @@ export function VendorTable() {
     },
     {
       header: 'Status',
-      cell: (vendor) => <VendorStatusBadge status={vendor.status} />,
+      cell: (vendor) => (
+        <>
+          <VendorStatusBadge status={vendor.status} />
+          {vendor.bankAccount && (
+            <span
+              className="subtle"
+              style={{
+                display: 'block',
+                marginTop: '3px',
+                fontSize: '10px',
+                color:
+                  vendor.bankAccount.verificationStatus === 'VERIFIED'
+                    ? '#2d7a50'
+                    : vendor.bankAccount.verificationStatus === 'REJECTED'
+                    ? '#c0392b'
+                    : '#9c7a00',
+              }}
+            >
+              Bank:{' '}
+              {vendor.bankAccount.verificationStatus === 'VERIFIED'
+                ? '✓ Verified'
+                : vendor.bankAccount.verificationStatus === 'REJECTED'
+                ? '✕ Rejected'
+                : '⏳ Pending'}
+            </span>
+          )}
+        </>
+      ),
     },
     {
       header: '',

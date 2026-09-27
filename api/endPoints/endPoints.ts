@@ -24,6 +24,9 @@ export const ENDPOINTS = {
       `/vendors/admin/${vendorId}/documents/${docId}/approve`,
     REJECT_DOCUMENT: (vendorId: string, docId: string) =>
       `/vendors/admin/${vendorId}/documents/${docId}/reject`,
+    BANK_ACCOUNT: (id: string) => `/vendors/admin/${id}/bank-account`,
+    VERIFY_BANK: (id: string) => `/vendors/admin/${id}/bank-account/verify`,
+    REJECT_BANK: (id: string) => `/vendors/admin/${id}/bank-account/reject`,
   },
   PRODUCTS: {
     LIST: '/admin/products',

@@ -4,7 +4,7 @@ import axiosInstance from '@/api/axios/axios'
 import { ENDPOINTS } from '@/api/endPoints/endPoints'
 import { DashboardOverviewData } from '@/types/dashboard'
 import { User } from '@/types/user'
-import { Vendor } from '@/types/vendor'
+import { Vendor, VendorBankAccount } from '@/types/vendor'
 import { Product } from '@/types/product'
 import { Category, Brand } from '@/types/category'
 import { Order } from '@/types/order'
@@ -378,6 +378,40 @@ export const adminApi = createApi({
       }),
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Vendors', id },
+        { type: 'Vendors', id: 'LIST' },
+      ],
+    }),
+    getVendorBankAccount: builder.query<VendorBankAccount | null, string>({
+      query: (id) => ({
+        url: ENDPOINTS.VENDORS.BANK_ACCOUNT(id),
+        method: 'GET',
+      }),
+      transformResponse: (response: unknown): VendorBankAccount | null => {
+        const res = response as { data?: VendorBankAccount | null }
+        return res?.data ?? null
+      },
+      providesTags: (_result, _error, id) => [{ type: 'Vendors', id: `bank-${id}` }],
+    }),
+    verifyVendorBank: builder.mutation<VendorBankAccount, { id: string }>({
+      query: ({ id }) => ({
+        url: ENDPOINTS.VENDORS.VERIFY_BANK(id),
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Vendors', id },
+        { type: 'Vendors', id: `bank-${id}` },
+        { type: 'Vendors', id: 'LIST' },
+      ],
+    }),
+    rejectVendorBank: builder.mutation<VendorBankAccount, { id: string; reason?: string }>({
+      query: ({ id, reason }) => ({
+        url: ENDPOINTS.VENDORS.REJECT_BANK(id),
+        method: 'PATCH',
+        data: reason ? { reason } : {},
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Vendors', id },
+        { type: 'Vendors', id: `bank-${id}` },
         { type: 'Vendors', id: 'LIST' },
       ],
     }),
@@ -920,6 +954,9 @@ export const {
   useRejectVendorMutation,
   useSuspendVendorMutation,
   useRestoreVendorMutation,
+  useGetVendorBankAccountQuery,
+  useVerifyVendorBankMutation,
+  useRejectVendorBankMutation,
   useGetProductsQuery,
   useGetProductByIdQuery,
   useApproveProductMutation,

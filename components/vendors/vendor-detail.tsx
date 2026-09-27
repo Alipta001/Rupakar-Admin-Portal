@@ -1,7 +1,238 @@
-import React from 'react'
-import { Vendor } from '@/types/vendor'
+'use client'
+
+import React, { useState } from 'react'
+import { Vendor, VendorBankAccount } from '@/types/vendor'
 import { VendorStatusBadge } from './vendor-status-badge'
 import { formatINR } from '@/lib/utils/formatters'
+import {
+  useGetVendorBankAccountQuery,
+  useVerifyVendorBankMutation,
+  useRejectVendorBankMutation,
+} from '@/redux/api/adminApi'
+
+function BankVerificationBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; bg: string; color: string }> = {
+    VERIFIED: { label: 'Verified', bg: '#e6f5ec', color: '#2d7a50' },
+    PENDING: { label: 'Pending', bg: '#fff8e5', color: '#9c7a00' },
+    REJECTED: { label: 'Rejected', bg: '#fcecea', color: '#c0392b' },
+  }
+  const s = map[status] ?? { label: status, bg: '#f0efee', color: '#6b6560' }
+  return (
+    <span
+      style={{
+        fontSize: '10px',
+        fontWeight: 600,
+        padding: '2px 8px',
+        borderRadius: '20px',
+        background: s.bg,
+        color: s.color,
+        letterSpacing: '0.02em',
+        display: 'inline-block',
+      }}
+    >
+      {s.label}
+    </span>
+  )
+}
+
+function BankSection({
+  vendorId,
+  bankFromDetail,
+}: {
+  vendorId: string
+  bankFromDetail: VendorBankAccount | null | undefined
+}) {
+  const [rejectMode, setRejectMode] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+
+  const { data: bankFromQuery, isLoading } = useGetVendorBankAccountQuery(vendorId, {
+    skip: bankFromDetail !== undefined,
+  })
+
+  const bank = bankFromDetail !== undefined ? bankFromDetail : bankFromQuery
+
+  const [verifyBank, { isLoading: verifying }] = useVerifyVendorBankMutation()
+  const [rejectBank, { isLoading: rejecting }] = useRejectVendorBankMutation()
+
+  const handleVerify = async () => {
+    try {
+      await verifyBank({ id: vendorId }).unwrap()
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Failed to verify bank account')
+    }
+  }
+
+  const handleReject = async () => {
+    try {
+      await rejectBank({ id: vendorId, reason: rejectReason.trim() || undefined }).unwrap()
+      setRejectMode(false)
+      setRejectReason('')
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Failed to reject bank account')
+    }
+  }
+
+  if (isLoading && bankFromDetail === undefined) {
+    return (
+      <div style={{ marginTop: '20px', padding: '12px', background: '#faf9f7', borderRadius: '8px', fontSize: '12px', color: '#827b72' }}>
+        Loading bank details…
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#4a433c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Bank Account
+        </span>
+        {bank && <BankVerificationBadge status={bank.verificationStatus} />}
+      </div>
+
+      {!bank ? (
+        <div style={{ fontSize: '12px', color: '#827b72', padding: '10px', background: '#faf9f7', borderRadius: '6px', textAlign: 'center' }}>
+          No bank account submitted yet
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px', background: '#faf9f7', padding: '12px', borderRadius: '8px' }}>
+            <div>
+              <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Account Holder</span>
+              <strong>{bank.accountHolderName || '—'}</strong>
+            </div>
+            <div>
+              <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Bank Name</span>
+              <strong>{bank.bankName || '—'}</strong>
+            </div>
+            <div>
+              <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Account Number</span>
+              <strong style={{ fontFamily: 'monospace' }}>{bank.maskedAccountNumber || '—'}</strong>
+            </div>
+            <div>
+              <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>IFSC Code</span>
+              <strong style={{ fontFamily: 'monospace' }}>{bank.ifscCode || '—'}</strong>
+            </div>
+            {bank.branchName && (
+              <div>
+                <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Branch</span>
+                <span>{bank.branchName}</span>
+              </div>
+            )}
+            <div>
+              <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Account Type</span>
+              <span>{bank.accountType || '—'}</span>
+            </div>
+            {bank.submittedAt && (
+              <div>
+                <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Submitted</span>
+                <span>{new Date(bank.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </div>
+            )}
+            {bank.verificationStatus === 'VERIFIED' && bank.verifiedAt && (
+              <div>
+                <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Verified On</span>
+                <span>{new Date(bank.verifiedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </div>
+            )}
+            {bank.verificationStatus === 'REJECTED' && bank.rejectionReason && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Rejection Reason</span>
+                <span style={{ color: '#c0392b' }}>{bank.rejectionReason}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Admin actions */}
+          {bank.verificationStatus !== 'VERIFIED' && !rejectMode && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <button
+                type="button"
+                className="button"
+                style={{ fontSize: '11px', padding: '6px 14px', background: '#2d7a50', color: '#fff', border: 'none' }}
+                onClick={handleVerify}
+                disabled={verifying}
+              >
+                {verifying ? 'Verifying…' : '✓ Verify Bank'}
+              </button>
+              {bank.verificationStatus !== 'REJECTED' && (
+                <button
+                  type="button"
+                  className="button secondary"
+                  style={{ fontSize: '11px', padding: '6px 14px', color: '#c0392b', borderColor: '#c0392b' }}
+                  onClick={() => setRejectMode(true)}
+                >
+                  ✕ Reject
+                </button>
+              )}
+              {bank.verificationStatus === 'REJECTED' && (
+                <button
+                  type="button"
+                  className="button secondary"
+                  style={{ fontSize: '11px', padding: '6px 14px', color: '#c0392b', borderColor: '#c0392b' }}
+                  onClick={() => setRejectMode(true)}
+                >
+                  Re-reject
+                </button>
+              )}
+            </div>
+          )}
+
+          {bank.verificationStatus === 'VERIFIED' && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <button
+                type="button"
+                className="button secondary"
+                style={{ fontSize: '11px', padding: '6px 14px', color: '#c0392b', borderColor: '#c0392b' }}
+                onClick={() => setRejectMode(true)}
+              >
+                ✕ Revoke Verification
+              </button>
+            </div>
+          )}
+
+          {rejectMode && (
+            <div style={{ marginTop: '10px' }}>
+              <input
+                type="text"
+                placeholder="Rejection reason (optional)"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '7px 10px',
+                  fontSize: '12px',
+                  border: '1px solid #e9e5df',
+                  borderRadius: '6px',
+                  marginBottom: '8px',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="button"
+                  style={{ fontSize: '11px', padding: '6px 14px', background: '#c0392b', color: '#fff', border: 'none' }}
+                  onClick={handleReject}
+                  disabled={rejecting}
+                >
+                  {rejecting ? 'Rejecting…' : 'Confirm Reject'}
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  style={{ fontSize: '11px', padding: '6px 14px' }}
+                  onClick={() => { setRejectMode(false); setRejectReason('') }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
 
 export function VendorDetailModal({
   vendor,
@@ -32,7 +263,7 @@ export function VendorDetailModal({
         className="panel"
         style={{
           width: '100%',
-          maxWidth: '560px',
+          maxWidth: '580px',
           padding: '24px',
           maxHeight: '90vh',
           overflowY: 'auto',
@@ -81,6 +312,9 @@ export function VendorDetailModal({
             <strong>{vendor.productsCount} items</strong>
           </div>
         </div>
+
+        {/* Bank details section */}
+        <BankSection vendorId={vendor.id} bankFromDetail={vendor.bankAccount} />
 
         <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
           <button type="button" className="button secondary" onClick={onClose}>

@@ -1,4 +1,21 @@
 export type VendorStatus = 'Approved' | 'Under review' | 'Suspended' | 'Rejected' | 'Pending'
+export type BankVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED'
+
+export interface VendorBankAccount {
+  id: string
+  accountHolderName: string
+  bankName: string
+  branchName?: string | null
+  ifscCode?: string
+  accountType?: string
+  maskedAccountNumber: string
+  verificationStatus: BankVerificationStatus
+  verifiedAt?: string | null
+  rejectedAt?: string | null
+  rejectionReason?: string | null
+  submittedAt?: string
+  updatedAt?: string
+}
 
 export interface Vendor {
   id: string
@@ -26,4 +43,5 @@ export interface Vendor {
   payoutPending?: number
   rating?: number
   joinedDate?: string
+  bankAccount?: VendorBankAccount | null
 }
