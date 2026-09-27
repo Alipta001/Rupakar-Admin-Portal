@@ -17,6 +17,8 @@ import {
   Tag,
   Clock,
   Image as ImageIcon,
+  Globe,
+  EyeOff,
 } from 'lucide-react'
 
 export interface ProductDetailModalProps {
@@ -26,6 +28,8 @@ export interface ProductDetailModalProps {
   onClose: () => void
   onApprove?: (productId: string) => void
   onReject?: (productId: string) => void
+  onPublish?: (productId: string) => void
+  onUnpublish?: (productId: string) => void
 }
 
 export function ProductDetailModal({
@@ -35,6 +39,8 @@ export function ProductDetailModal({
   onClose,
   onApprove,
   onReject,
+  onPublish,
+  onUnpublish,
 }: ProductDetailModalProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
@@ -93,7 +99,8 @@ export function ProductDetailModal({
       : String(p.dimensions)
     : null
 
-  const isApproved = p.status === 'Approved' || p.moderationStatus === 'APPROVED'
+  const isPublished = p.status === 'Published' || p.moderationStatus === 'PUBLISHED' || Boolean(p.isPublished)
+  const isApproved = p.status === 'Approved' || p.moderationStatus === 'APPROVED' || isPublished
   const isRejected = p.status === 'Rejected' || p.moderationStatus === 'REJECTED'
 
   return (
@@ -558,6 +565,26 @@ export function ProductDetailModal({
                     onClick={() => onApprove(activeId)}
                   >
                     <CheckCircle2 size={15} /> Approve Product
+                  </button>
+                )}
+                {isApproved && !isPublished && onPublish && (
+                  <button
+                    type="button"
+                    className="button"
+                    style={{ background: '#1c64f2', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => onPublish(activeId)}
+                  >
+                    <Globe size={15} /> Publish Product
+                  </button>
+                )}
+                {isPublished && onUnpublish && (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    style={{ color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => onUnpublish(activeId)}
+                  >
+                    <EyeOff size={15} /> Unpublish Product
                   </button>
                 )}
                 {!isRejected && onReject && (

@@ -11,7 +11,7 @@ export function StatusBadge({ status, tone, className = '' }: StatusBadgeProps) 
 
   if (!resolvedTone) {
     const s = status.toLowerCase()
-    if (s === 'delivered' || s === 'approved' || s === 'active' || s === 'completed' || s === 'captured' || s === 'in stock') {
+    if (s === 'delivered' || s === 'approved' || s === 'published' || s === 'active' || s === 'completed' || s === 'captured' || s === 'in stock') {
       resolvedTone = 'success'
     } else if (s === 'processing' || s === 'under review' || s === 'pending' || s === 'low stock' || s === 'ready to process') {
       resolvedTone = 'warning'

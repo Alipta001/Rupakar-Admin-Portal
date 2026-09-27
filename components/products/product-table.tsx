@@ -50,6 +50,19 @@ export function ProductTable() {
         await archiveProduct({ id: productId }).unwrap()
       }
       await refetch()
+      if (selectedProduct && (selectedProduct.id === productId || (selectedProduct as any)._id === productId)) {
+        setSelectedProduct((prev: any) => {
+          if (!prev) return null
+          const nextStatus = status === 'Published' ? 'Published' : status === 'Approved' ? 'Approved' : status === 'Rejected' ? 'Rejected' : prev.status
+          const nextMod = status === 'Published' ? 'PUBLISHED' : status === 'Approved' ? 'APPROVED' : status === 'Rejected' ? 'REJECTED' : prev.moderationStatus
+          return {
+            ...prev,
+            status: nextStatus,
+            moderationStatus: nextMod,
+            isPublished: status === 'Published',
+          }
+        })
+      }
     } catch (err) {
       console.error('Failed to update product moderation state:', err)
     }
@@ -79,7 +92,8 @@ export function ProductTable() {
 
   const products: Product[] = rawList.map((p: any) => {
     let uiStatus: Product['status'] = 'Under review'
-    if (p.status === 'APPROVED' || p.status === 'PUBLISHED') uiStatus = 'Approved'
+    if (p.status === 'PUBLISHED') uiStatus = 'Published'
+    else if (p.status === 'APPROVED') uiStatus = 'Approved'
     else if (p.status === 'REJECTED') uiStatus = 'Rejected'
     else if (p.status === 'DRAFT') uiStatus = 'Draft'
     else if (p.status === 'ARCHIVED') uiStatus = 'Archived'
@@ -142,6 +156,7 @@ export function ProductTable() {
         <ProductActions
           productId={product.id}
           status={product.status}
+          moderationStatus={product.moderationStatus}
           onUpdateStatus={handleUpdateStatus}
         />
       ),
@@ -179,6 +194,8 @@ export function ProductTable() {
         }}
         onApprove={(id) => handleUpdateStatus(id, 'Approved')}
         onReject={(id) => handleUpdateStatus(id, 'Rejected')}
+        onPublish={(id) => handleUpdateStatus(id, 'Published')}
+        onUnpublish={(id) => handleUpdateStatus(id, 'Unpublished')}
       />
     </>
   )

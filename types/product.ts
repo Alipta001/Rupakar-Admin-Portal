@@ -1,4 +1,4 @@
-export type ProductStatus = 'Approved' | 'Under review' | 'Draft' | 'Rejected' | 'Archived' | 'Processing'
+export type ProductStatus = 'Approved' | 'Published' | 'Under review' | 'Draft' | 'Rejected' | 'Archived' | 'Processing'
 
 export type ModerationStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED' | 'UNPUBLISHED' | 'ARCHIVED'
 

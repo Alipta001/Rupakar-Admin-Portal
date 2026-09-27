@@ -17,6 +17,7 @@ export function ProductFilters({ statusFilter, onStatusChange }: ProductFiltersP
         style={{ appearance: 'none', paddingRight: '24px', cursor: 'pointer' }}
       >
         <option value="ALL">All statuses</option>
+        <option value="Published">Published</option>
         <option value="Approved">Approved</option>
         <option value="Under review">Under review</option>
         <option value="Processing">Processing</option>
