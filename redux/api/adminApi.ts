@@ -10,7 +10,7 @@ import { Category, Brand } from '@/types/category'
 import { Order } from '@/types/order'
 import { Payment, Refund } from '@/types/payment'
 import { InventoryItem } from '@/types/inventory'
-import { Commission, Payout, Invoice, EligibleSettlement } from '@/types/finance'
+import { Commission, Payout, Invoice, EligibleSettlement, SettlementReadinessVendor, FinanceOverview } from '@/types/finance'
 import { AuthenticityRecord } from '@/types/authenticity'
 import { Coupon } from '@/types/coupon'
 import { Review } from '@/types/review'
@@ -672,6 +672,19 @@ export const adminApi = createApi({
         normalizePaginatedResult<Payout>(response),
       providesTags: (result) => safeListTags('Payouts', result),
     }),
+    getFinanceOverview: builder.query<FinanceOverview, void>({
+      query: () => ({
+        url: ENDPOINTS.FINANCE.OVERVIEW,
+        method: 'GET',
+      }),
+      transformResponse: (response: unknown): FinanceOverview => {
+        if (response && typeof response === 'object' && 'data' in (response as Record<string, unknown>)) {
+          return (response as Record<string, unknown>).data as FinanceOverview
+        }
+        return response as FinanceOverview
+      },
+      providesTags: ['Payouts'],
+    }),
     getEligibleSettlements: builder.query<EligibleSettlement[], void>({
       query: () => ({
         url: ENDPOINTS.PAYOUTS.ELIGIBLE,
@@ -679,6 +692,15 @@ export const adminApi = createApi({
       }),
       transformResponse: (response: unknown): EligibleSettlement[] =>
         normalizeArray<EligibleSettlement>(response),
+      providesTags: ['Payouts'],
+    }),
+    getSettlementReadinessOverview: builder.query<SettlementReadinessVendor[], void>({
+      query: () => ({
+        url: ENDPOINTS.PAYOUTS.READINESS_OVERVIEW,
+        method: 'GET',
+      }),
+      transformResponse: (response: unknown): SettlementReadinessVendor[] =>
+        normalizeArray<SettlementReadinessVendor>(response),
       providesTags: ['Payouts'],
     }),
     triggerSettlementBatch: builder.mutation<
@@ -1020,7 +1042,9 @@ export const {
   useGetCommissionConfigsQuery,
   useCreateCommissionConfigMutation,
   useGetPayoutsQuery,
+  useGetFinanceOverviewQuery,
   useGetEligibleSettlementsQuery,
+  useGetSettlementReadinessOverviewQuery,
   useTriggerSettlementBatchMutation,
   useConfirmManualPayoutMutation,
   useRetryPayoutMutation,

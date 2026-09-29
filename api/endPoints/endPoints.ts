@@ -85,6 +85,10 @@ export const ENDPOINTS = {
     RETRY: (id: string) => `/admin/finance/payouts/${id}/retry`,
     ELIGIBLE: '/admin/finance/settlements/eligible',
     TRIGGER_BATCH: '/admin/finance/settlements/batch',
+    READINESS_OVERVIEW: '/admin/finance/settlements/readiness-overview',
+  },
+  FINANCE: {
+    OVERVIEW: '/admin/finance/overview',
   },
   INVOICES: {
     LIST: '/admin/invoices',

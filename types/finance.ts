@@ -50,7 +50,40 @@ export interface EligibleSettlement {
   eligibleAmountPaise: number
   entryCount: number
   entryIds: string[]
-  bankDetails?: BankSnapshot | null
+  ordersCount?: number
+  earliestEligibleAt?: string | null
+  eligibleSince?: string | null
+  status?: string
+  existingPayoutId?: string | null
+  bankDetails?: (BankSnapshot & { isVerified?: boolean }) | null
+}
+
+export interface SettlementReadinessVendor {
+  vendorId: string
+  vendorName: string
+  eligibleAmount: number
+  eligibleAmountPaise: number
+  pendingAmount: number
+  pendingAmountPaise: number
+  onHoldAmount: number
+  onHoldAmountPaise: number
+  totalPayable: number
+  totalPayablePaise: number
+  ordersCount: number
+  earliestEligibleAt?: string | null
+  eligibleSince?: string | null
+  status: 'READY' | 'ON_HOLD' | 'PENDING' | 'ACTION_REQUIRED'
+  ineligibilityReason?: string
+  ineligibilityDetails?: string
+  bankDetails?: (BankSnapshot & { isVerified?: boolean }) | null
+}
+
+export interface FinanceOverview {
+  vendorPayable: { amount: number; paise: number }
+  eligibleSettlements: { amount: number; paise: number; vendorCount: number }
+  onHoldSettlements: { amount: number; paise: number; vendorCount: number }
+  pendingSettlements: { amount: number; paise: number; vendorCount: number }
+  completedPayouts: { amount: number; paise: number; count: number }
 }
 
 export interface Invoice {
@@ -65,3 +98,4 @@ export interface Invoice {
   generatedDate: string
   downloadUrl?: string
 }
+
