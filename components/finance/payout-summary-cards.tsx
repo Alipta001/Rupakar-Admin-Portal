@@ -14,15 +14,16 @@ import {
 export function PayoutSummaryCards() {
   const { data, isLoading } = useGetFinanceOverviewQuery()
 
-  const vendorPayable = data?.vendorPayable?.amount ?? 0
-  const eligibleAmount = data?.eligibleSettlements?.amount ?? 0
-  const eligibleVendors = data?.eligibleSettlements?.vendorCount ?? 0
-  const onHoldAmount = data?.onHoldSettlements?.amount ?? 0
-  const onHoldVendors = data?.onHoldSettlements?.vendorCount ?? 0
-  const pendingAmount = data?.pendingSettlements?.amount ?? 0
-  const pendingVendors = data?.pendingSettlements?.vendorCount ?? 0
-  const paidAmount = data?.completedPayouts?.amount ?? 0
-  const paidCount = data?.completedPayouts?.count ?? 0
+  const raw: any = data
+  const vendorPayable = typeof raw?.vendorPayable === 'number' ? raw.vendorPayable : (raw?.vendorPayable?.amount ?? 0)
+  const eligibleAmount = typeof raw?.eligibleSettlements === 'number' ? raw.eligibleSettlements : (raw?.eligibleSettlements?.amount ?? 0)
+  const eligibleVendors = raw?.eligibleSettlements?.vendorCount ?? 0
+  const onHoldAmount = typeof raw?.onHoldSettlements === 'number' ? raw.onHoldSettlements : (raw?.onHoldSettlements?.amount ?? 0)
+  const onHoldVendors = raw?.onHoldSettlements?.vendorCount ?? 0
+  const pendingAmount = typeof raw?.pendingSettlements === 'number' ? raw.pendingSettlements : (raw?.pendingSettlements?.amount ?? 0)
+  const pendingVendors = raw?.pendingSettlements?.vendorCount ?? 0
+  const paidAmount = typeof raw?.completedPayouts === 'number' ? raw.completedPayouts : (raw?.completedPayouts?.amount ?? 0)
+  const paidCount = raw?.completedPayouts?.count ?? raw?.completedPayoutCount ?? 0
 
   const cards = [
     {

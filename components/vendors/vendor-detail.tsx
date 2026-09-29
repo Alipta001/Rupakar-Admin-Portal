@@ -1,13 +1,16 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Vendor, VendorBankAccount } from '@/types/vendor'
+import { Vendor, VendorBankAccount, VendorDocument } from '@/types/vendor'
 import { VendorStatusBadge } from './vendor-status-badge'
 import { formatINR } from '@/lib/utils/formatters'
 import {
   useGetVendorBankAccountQuery,
   useVerifyVendorBankMutation,
   useRejectVendorBankMutation,
+  useGetVendorDocumentsQuery,
+  useApproveVendorDocumentMutation,
+  useRejectVendorDocumentMutation,
 } from '@/redux/api/adminApi'
 
 function BankVerificationBadge({ status }: { status: string }) {
@@ -234,6 +237,186 @@ function BankSection({
   )
 }
 
+function DocumentStatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; bg: string; color: string }> = {
+    APPROVED: { label: 'Approved', bg: '#e6f5ec', color: '#2d7a50' },
+    PENDING: { label: 'Pending', bg: '#fff8e5', color: '#9c7a00' },
+    REJECTED: { label: 'Rejected', bg: '#fcecea', color: '#c0392b' },
+  }
+  const s = map[status] ?? { label: status, bg: '#f0efee', color: '#6b6560' }
+  return (
+    <span
+      style={{
+        fontSize: '10px',
+        fontWeight: 600,
+        padding: '2px 8px',
+        borderRadius: '20px',
+        background: s.bg,
+        color: s.color,
+        letterSpacing: '0.02em',
+        display: 'inline-block',
+      }}
+    >
+      {s.label}
+    </span>
+  )
+}
+
+function DocumentsSection({ vendorId }: { vendorId: string }) {
+  const { data: documents = [], isLoading } = useGetVendorDocumentsQuery(vendorId)
+  const [approveDocument, { isLoading: approving }] = useApproveVendorDocumentMutation()
+  const [rejectDocument, { isLoading: rejecting }] = useRejectVendorDocumentMutation()
+  const [rejectingDocId, setRejectingDocId] = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+
+  const handleApprove = async (docId: string) => {
+    try {
+      await approveDocument({ vendorId, docId }).unwrap()
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Failed to approve document')
+    }
+  }
+
+  const handleReject = async (docId: string) => {
+    try {
+      await rejectDocument({ vendorId, docId, reason: rejectReason.trim() || undefined }).unwrap()
+      setRejectingDocId(null)
+      setRejectReason('')
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Failed to reject document')
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div style={{ marginTop: '20px', padding: '12px', background: '#faf9f7', borderRadius: '8px', fontSize: '12px', color: '#827b72' }}>
+        Loading documents…
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#4a433c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Vendor Documents ({documents.length})
+        </span>
+      </div>
+
+      {documents.length === 0 ? (
+        <div style={{ fontSize: '12px', color: '#827b72', padding: '10px', background: '#faf9f7', borderRadius: '6px', textAlign: 'center' }}>
+          No documents submitted yet
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {documents.map((doc: VendorDocument) => (
+            <div
+              key={doc.id}
+              style={{
+                border: '1px solid #eee',
+                borderRadius: '8px',
+                padding: '12px',
+                background: '#faf9f7',
+                fontSize: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontWeight: 600, color: '#27231f' }}>
+                  {doc.documentType.replaceAll('_', ' ')}
+                  {doc.documentNumber && <span style={{ fontWeight: 400, color: '#827b72', marginLeft: '6px' }}>({doc.documentNumber})</span>}
+                </span>
+                <DocumentStatusBadge status={doc.status} />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: '#827b72' }}>
+                <span>
+                  Submitted: {doc.submittedAt ? new Date(doc.submittedAt).toLocaleDateString('en-IN') : 'N/A'}
+                  {doc.rejectionReason && (
+                    <span style={{ display: 'block', color: '#c0392b', marginTop: '2px' }}>Reason: {doc.rejectionReason}</span>
+                  )}
+                </span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {doc.viewUrl && (
+                    <a
+                      href={doc.viewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="button secondary"
+                      style={{ fontSize: '11px', padding: '4px 10px', textDecoration: 'none', display: 'inline-block' }}
+                    >
+                      View
+                    </a>
+                  )}
+                  {doc.status !== 'APPROVED' && (
+                    <button
+                      type="button"
+                      className="button"
+                      style={{ fontSize: '11px', padding: '4px 10px', background: '#2d7a50', color: '#fff', border: 'none' }}
+                      onClick={() => handleApprove(doc.id)}
+                      disabled={approving}
+                    >
+                      Approve
+                    </button>
+                  )}
+                  {doc.status !== 'REJECTED' && rejectingDocId !== doc.id && (
+                    <button
+                      type="button"
+                      className="button secondary"
+                      style={{ fontSize: '11px', padding: '4px 10px', color: '#c0392b' }}
+                      onClick={() => { setRejectingDocId(doc.id); setRejectReason('') }}
+                    >
+                      Reject
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {rejectingDocId === doc.id && (
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e9e5df' }}>
+                  <input
+                    type="text"
+                    placeholder="Reason for rejection (optional)"
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '11px',
+                      border: '1px solid #e9e5df',
+                      borderRadius: '4px',
+                      marginBottom: '6px',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="button"
+                      style={{ fontSize: '10px', padding: '4px 10px', background: '#c0392b', color: '#fff', border: 'none' }}
+                      onClick={() => handleReject(doc.id)}
+                      disabled={rejecting}
+                    >
+                      {rejecting ? 'Rejecting…' : 'Confirm Reject'}
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      style={{ fontSize: '10px', padding: '4px 10px' }}
+                      onClick={() => { setRejectingDocId(null); setRejectReason('') }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function VendorDetailModal({
   vendor,
   isOpen,
@@ -315,6 +498,9 @@ export function VendorDetailModal({
 
         {/* Bank details section */}
         <BankSection vendorId={vendor.id} bankFromDetail={vendor.bankAccount} />
+
+        {/* Vendor documents section */}
+        <DocumentsSection vendorId={vendor.id} />
 
         <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
           <button type="button" className="button secondary" onClick={onClose}>

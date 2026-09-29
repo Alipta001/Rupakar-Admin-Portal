@@ -4,7 +4,7 @@ import axiosInstance from '@/api/axios/axios'
 import { ENDPOINTS } from '@/api/endPoints/endPoints'
 import { DashboardOverviewData } from '@/types/dashboard'
 import { User } from '@/types/user'
-import { Vendor, VendorBankAccount } from '@/types/vendor'
+import { Vendor, VendorBankAccount, VendorDocument } from '@/types/vendor'
 import { Product } from '@/types/product'
 import { Category, Brand } from '@/types/category'
 import { Order } from '@/types/order'
@@ -412,6 +412,41 @@ export const adminApi = createApi({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Vendors', id },
         { type: 'Vendors', id: `bank-${id}` },
+        { type: 'Vendors', id: 'LIST' },
+      ],
+    }),
+    getVendorDocuments: builder.query<VendorDocument[], string>({
+      query: (vendorId) => ({
+        url: ENDPOINTS.VENDORS.DOCUMENTS(vendorId),
+        method: 'GET',
+      }),
+      transformResponse: (response: unknown): VendorDocument[] => {
+        const res = response as { data?: VendorDocument[] }
+        return res?.data ?? []
+      },
+      providesTags: (_result, _error, vendorId) => [{ type: 'Vendors', id: `docs-${vendorId}` }],
+    }),
+    approveVendorDocument: builder.mutation<unknown, { vendorId: string; docId: string; reason?: string }>({
+      query: ({ vendorId, docId, reason }) => ({
+        url: ENDPOINTS.VENDORS.APPROVE_DOCUMENT(vendorId, docId),
+        method: 'PATCH',
+        data: reason ? { reason } : {},
+      }),
+      invalidatesTags: (_result, _error, { vendorId }) => [
+        { type: 'Vendors', id: vendorId },
+        { type: 'Vendors', id: `docs-${vendorId}` },
+        { type: 'Vendors', id: 'LIST' },
+      ],
+    }),
+    rejectVendorDocument: builder.mutation<unknown, { vendorId: string; docId: string; reason?: string }>({
+      query: ({ vendorId, docId, reason }) => ({
+        url: ENDPOINTS.VENDORS.REJECT_DOCUMENT(vendorId, docId),
+        method: 'PATCH',
+        data: reason ? { reason } : {},
+      }),
+      invalidatesTags: (_result, _error, { vendorId }) => [
+        { type: 'Vendors', id: vendorId },
+        { type: 'Vendors', id: `docs-${vendorId}` },
         { type: 'Vendors', id: 'LIST' },
       ],
     }),
@@ -1017,6 +1052,9 @@ export const {
   useGetVendorBankAccountQuery,
   useVerifyVendorBankMutation,
   useRejectVendorBankMutation,
+  useGetVendorDocumentsQuery,
+  useApproveVendorDocumentMutation,
+  useRejectVendorDocumentMutation,
   useGetProductsQuery,
   useGetProductByIdQuery,
   useApproveProductMutation,

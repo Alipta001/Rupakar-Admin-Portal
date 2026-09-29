@@ -1,5 +1,20 @@
 export type VendorStatus = 'Approved' | 'Under review' | 'Suspended' | 'Rejected' | 'Pending'
 export type BankVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED'
+export type DocumentVerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface VendorDocument {
+  id: string
+  vendorId?: string
+  documentType: string
+  documentNumber?: string
+  storageKey?: string
+  status: DocumentVerificationStatus
+  submittedAt?: string
+  verifiedAt?: string | null
+  rejectionReason?: string | null
+  viewUrl?: string | null
+  downloadUrl?: string | null
+}
 
 export interface VendorBankAccount {
   id: string
