@@ -10,7 +10,7 @@ import { Category, Brand } from '@/types/category'
 import { Order } from '@/types/order'
 import { Payment, Refund } from '@/types/payment'
 import { InventoryItem } from '@/types/inventory'
-import { Commission, Payout, Invoice } from '@/types/finance'
+import { Commission, Payout, Invoice, EligibleSettlement } from '@/types/finance'
 import { AuthenticityRecord } from '@/types/authenticity'
 import { Coupon } from '@/types/coupon'
 import { Review } from '@/types/review'
@@ -672,6 +672,44 @@ export const adminApi = createApi({
         normalizePaginatedResult<Payout>(response),
       providesTags: (result) => safeListTags('Payouts', result),
     }),
+    getEligibleSettlements: builder.query<EligibleSettlement[], void>({
+      query: () => ({
+        url: ENDPOINTS.PAYOUTS.ELIGIBLE,
+        method: 'GET',
+      }),
+      transformResponse: (response: unknown): EligibleSettlement[] =>
+        normalizeArray<EligibleSettlement>(response),
+      providesTags: ['Payouts'],
+    }),
+    triggerSettlementBatch: builder.mutation<
+      unknown,
+      { vendorIds?: string[]; minThresholdPaise?: number }
+    >({
+      query: (body) => ({
+        url: ENDPOINTS.PAYOUTS.TRIGGER_BATCH,
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: ['Payouts'],
+    }),
+    confirmManualPayout: builder.mutation<
+      unknown,
+      { id: string; referenceId: string; notes?: string; amount?: number }
+    >({
+      query: ({ id, ...body }) => ({
+        url: ENDPOINTS.PAYOUTS.CONFIRM_MANUAL(id),
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: ['Payouts'],
+    }),
+    retryPayout: builder.mutation<unknown, string>({
+      query: (id) => ({
+        url: ENDPOINTS.PAYOUTS.RETRY(id),
+        method: 'POST',
+      }),
+      invalidatesTags: ['Payouts'],
+    }),
 
     // 13. Invoices
     getInvoices: builder.query<PaginatedResult<Invoice>, QueryParams | void>({
@@ -982,6 +1020,10 @@ export const {
   useGetCommissionConfigsQuery,
   useCreateCommissionConfigMutation,
   useGetPayoutsQuery,
+  useGetEligibleSettlementsQuery,
+  useTriggerSettlementBatchMutation,
+  useConfirmManualPayoutMutation,
+  useRetryPayoutMutation,
   useGetInvoicesQuery,
   useGetInvoiceByIdQuery,
   useGetAuthenticityRecordsQuery,

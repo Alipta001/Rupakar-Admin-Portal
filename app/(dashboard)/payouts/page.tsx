@@ -4,6 +4,7 @@ import React from 'react'
 import { Filter } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { PayoutTable } from '@/components/finance/payout-table'
+import { EligibleSettlementsBanner } from '@/components/finance/eligible-settlements-banner'
 
 export default function PayoutsPage() {
   return (
@@ -18,6 +19,7 @@ export default function PayoutsPage() {
           </button>
         }
       />
+      <EligibleSettlementsBanner />
       <PayoutTable />
     </>
   )

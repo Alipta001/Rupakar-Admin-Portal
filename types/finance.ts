@@ -15,6 +15,13 @@ export interface Commission {
 
 export type PayoutStatus = 'Ready to process' | 'Processing' | 'Completed' | 'Failed' | 'On hold'
 
+export interface BankSnapshot {
+  accountHolderName?: string | null
+  accountNumberMasked?: string | null
+  ifsc?: string | null
+  bankName?: string | null
+}
+
 export interface Payout {
   id: string
   payoutNumber: string
@@ -27,7 +34,23 @@ export interface Payout {
   status: PayoutStatus
   paymentReference?: string
   bankAccountLast4?: string
+  bankSnapshot?: BankSnapshot
+  referenceId?: string
+  rawStatus?: string
+  provider?: string
+  failureReason?: string
+  processedAt?: string | null
   date: string
+}
+
+export interface EligibleSettlement {
+  vendorId: string
+  vendorName: string
+  eligibleAmount: number
+  eligibleAmountPaise: number
+  entryCount: number
+  entryIds: string[]
+  bankDetails?: BankSnapshot | null
 }
 
 export interface Invoice {

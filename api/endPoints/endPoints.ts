@@ -81,6 +81,10 @@ export const ENDPOINTS = {
   },
   PAYOUTS: {
     LIST: '/admin/finance/payouts',
+    CONFIRM_MANUAL: (id: string) => `/admin/finance/payouts/${id}/confirm-manual`,
+    RETRY: (id: string) => `/admin/finance/payouts/${id}/retry`,
+    ELIGIBLE: '/admin/finance/settlements/eligible',
+    TRIGGER_BATCH: '/admin/finance/settlements/batch',
   },
   INVOICES: {
     LIST: '/admin/invoices',
