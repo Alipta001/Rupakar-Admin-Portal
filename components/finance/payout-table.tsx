@@ -294,6 +294,14 @@ export function PayoutTable({ onRefresh }: PayoutTableProps) {
       ),
     },
     {
+      header: 'Method',
+      cell: (p) => (
+        <span style={{ fontSize: '11px', color: '#524b42', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+          {p.provider ? p.provider.replaceAll('_', ' ') : 'MANUAL BANK TRANSFER'}
+        </span>
+      ),
+    },
+    {
       header: 'Status',
       cell: (p) => renderStatusBadge(p.rawStatus || 'READY'),
     },

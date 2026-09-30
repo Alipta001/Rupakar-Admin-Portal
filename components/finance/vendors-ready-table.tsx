@@ -36,6 +36,10 @@ export function VendorsReadyTable({ onPayoutSuccess }: VendorsReadyTableProps) {
     setErrorMsg(null)
     setSuccessMsg(null)
 
+    const remainingAmount = item.eligibleAmount || 0
+    const alreadyPaid = item.alreadyPaidAmount || 0
+    const totalEarned = item.totalPayable || (remainingAmount + alreadyPaid)
+
     // If an existing payout record is already staged in READY status
     if (item.existingPayoutId) {
       const payout: Payout = {
@@ -43,10 +47,12 @@ export function VendorsReadyTable({ onPayoutSuccess }: VendorsReadyTableProps) {
         payoutNumber: `PO-${item.existingPayoutId.slice(-6).toUpperCase()}`,
         vendorName: item.vendorName,
         vendorId: item.vendorId,
-        grossAmount: item.eligibleAmount,
+        grossAmount: totalEarned,
         commissionAmount: 0,
-        netPayable: item.eligibleAmount,
-        formattedNetPayable: formatINR(item.eligibleAmount),
+        netPayable: remainingAmount,
+        alreadyPaidAmount: alreadyPaid,
+        totalPayable: totalEarned,
+        formattedNetPayable: formatINR(remainingAmount),
         status: 'Ready to process',
         bankAccountLast4: item.bankDetails?.accountNumberMasked
           ? item.bankDetails.accountNumberMasked.slice(-4)
@@ -59,17 +65,17 @@ export function VendorsReadyTable({ onPayoutSuccess }: VendorsReadyTableProps) {
       return
     }
 
-    // Otherwise stage a manual settlement payout for this vendor
+    // Otherwise stage a manual settlement payout for this vendor with minThresholdPaise: 0
     setLoadingVendorId(item.vendorId)
     try {
-      const res: any = await triggerBatch({ vendorIds: [item.vendorId] }).unwrap()
+      const res: any = await triggerBatch({ vendorIds: [item.vendorId], minThresholdPaise: 0 }).unwrap()
       const createdList = res?.data?.payouts || res?.payouts || []
       const createdPayout = createdList[0]
 
       if (createdPayout) {
         const netAmt =
           (createdPayout.netPayablePaise || createdPayout.amountPaise || 0) / 100 ||
-          item.eligibleAmount
+          remainingAmount
         const payout: Payout = {
           id: createdPayout._id || createdPayout.id,
           payoutNumber:
@@ -77,9 +83,11 @@ export function VendorsReadyTable({ onPayoutSuccess }: VendorsReadyTableProps) {
             `PO-${(createdPayout._id || createdPayout.id || '').slice(-6).toUpperCase()}`,
           vendorName: item.vendorName,
           vendorId: item.vendorId,
-          grossAmount: netAmt,
+          grossAmount: totalEarned,
           commissionAmount: 0,
           netPayable: netAmt,
+          alreadyPaidAmount: alreadyPaid,
+          totalPayable: totalEarned,
           formattedNetPayable: formatINR(netAmt),
           status: 'Ready to process',
           bankAccountLast4: item.bankDetails?.accountNumberMasked
@@ -91,7 +99,11 @@ export function VendorsReadyTable({ onPayoutSuccess }: VendorsReadyTableProps) {
         }
         setSelectedPayout(payout)
       } else {
-        refetch()
+        const backendMessage =
+          res?.data?.message ||
+          res?.message ||
+          'Vendor is not currently ready for payout settlement. Please check KYC verification or minimum balance.'
+        setErrorMsg(backendMessage)
       }
     } catch (err: any) {
       setErrorMsg(

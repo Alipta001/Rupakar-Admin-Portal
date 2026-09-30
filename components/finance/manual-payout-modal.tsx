@@ -30,15 +30,23 @@ export function ManualPayoutModal({
   const [confirmManualPayout, { isLoading }] = useConfirmManualPayoutMutation()
   const [referenceId, setReferenceId] = useState('')
   const [amount, setAmount] = useState<number | string>('')
+  const [paymentDate, setPaymentDate] = useState<string>(() => new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successConfirmation, setSuccessConfirmation] = useState<string | null>(null)
+
+  const remainingPayable = payout?.netPayable ?? 0
+  const alreadyPaid = payout?.alreadyPaidAmount ?? 0
+  const totalEligible = payout?.totalPayable ?? (remainingPayable + alreadyPaid)
 
   useEffect(() => {
     if (payout) {
       setAmount(payout.netPayable)
       setReferenceId('')
+      setPaymentDate(new Date().toISOString().split('T')[0])
       setNotes('')
       setErrorMessage(null)
+      setSuccessConfirmation(null)
     }
   }, [payout])
 
@@ -64,20 +72,31 @@ export function ManualPayoutModal({
 
     const numAmount = Number(amount)
     if (Number.isNaN(numAmount) || numAmount <= 0) {
-      setErrorMessage('Please specify a valid payable amount.')
+      setErrorMessage('Please specify a positive settlement amount greater than zero.')
+      return
+    }
+
+    if (numAmount > remainingPayable + 0.001) {
+      setErrorMessage(`Amount cannot exceed the remaining payable balance of ${formatINR(remainingPayable)}.`)
       return
     }
 
     try {
-      await confirmManualPayout({
+      const res: any = await confirmManualPayout({
         id: payout.id,
         referenceId: trimmedRef,
         amount: numAmount,
+        paymentDate,
         notes: notes.trim() || undefined,
       }).unwrap()
 
-      onSuccess()
-      onClose()
+      const successMsg = `Manual payment of ${formatINR(numAmount)} recorded successfully. UTR: ${trimmedRef}`
+      setSuccessConfirmation(successMsg)
+
+      setTimeout(() => {
+        onSuccess()
+        onClose()
+      }, 1200)
     } catch (err: any) {
       const msg =
         err?.data?.message ||
@@ -106,7 +125,7 @@ export function ManualPayoutModal({
         className="panel"
         style={{
           width: '100%',
-          maxWidth: '540px',
+          maxWidth: '560px',
           padding: '28px',
           boxShadow: '0 24px 48px rgba(0,0,0,0.22)',
           borderRadius: '12px',
@@ -175,45 +194,54 @@ export function ManualPayoutModal({
               </span>
             </div>
             <span style={{ fontSize: '12px', color: '#827b72' }}>
-              Payout Ref: <strong>{payout.payoutNumber}</strong>
+              Vendor: <strong>{payout.vendorName}</strong> {payout.vendorId ? `· ID: ${String(payout.vendorId).slice(-6)}` : ''} · Payout Ref: <strong>{payout.payoutNumber}</strong>
             </span>
           </div>
         </div>
 
-        {/* Required Confirmation Callout: Pay ₹X,XXX to Vendor Name */}
+        {/* Current Payable Breakdown Cards */}
         <div
           style={{
-            background: '#fdf8f4',
-            border: '1.5px solid #dca88e',
-            borderRadius: '8px',
-            padding: '14px 18px',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: '10px',
             marginBottom: '16px',
-            textAlign: 'center',
           }}
         >
-          <div
-            style={{
-              fontSize: '11px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.8px',
-              color: '#8a5327',
-              fontWeight: 600,
-            }}
-          >
-            Confirmed Settlement Amount
+          <div style={{ background: '#f9f8f6', border: '1px solid #e8e2d9', borderRadius: '8px', padding: '10px 12px', textAlign: 'center' }}>
+            <span style={{ fontSize: '10px', color: '#827b72', textTransform: 'uppercase', fontWeight: 600 }}>Total Eligible</span>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#27231f', marginTop: '2px' }}>{formatINR(totalEligible)}</div>
           </div>
-          <div
-            style={{
-              fontSize: '22px',
-              fontWeight: 700,
-              color: '#27231f',
-              marginTop: '4px',
-              letterSpacing: '-0.4px',
-            }}
-          >
-            Pay {formatINR(payout.netPayable)} to {payout.vendorName}
+          <div style={{ background: '#f9f8f6', border: '1px solid #e8e2d9', borderRadius: '8px', padding: '10px 12px', textAlign: 'center' }}>
+            <span style={{ fontSize: '10px', color: '#827b72', textTransform: 'uppercase', fontWeight: 600 }}>Already Paid</span>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#15803d', marginTop: '2px' }}>{formatINR(alreadyPaid)}</div>
+          </div>
+          <div style={{ background: '#fdf8f4', border: '1.5px solid #dca88e', borderRadius: '8px', padding: '10px 12px', textAlign: 'center' }}>
+            <span style={{ fontSize: '10px', color: '#8a5327', textTransform: 'uppercase', fontWeight: 700 }}>Remaining Payable</span>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#8a5327', marginTop: '2px' }}>{formatINR(remainingPayable)}</div>
           </div>
         </div>
+
+        {successConfirmation && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 14px',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '6px',
+              color: '#15803d',
+              fontSize: '13px',
+              fontWeight: 600,
+              marginBottom: '16px',
+            }}
+          >
+            <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+            <span>{successConfirmation}</span>
+          </div>
+        )}
 
         {errorMessage && (
           <div
@@ -257,7 +285,7 @@ export function ManualPayoutModal({
             }}
           >
             <span style={{ fontWeight: 600, color: '#3d3731', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <ShieldCheck size={14} color="#15803d" /> Verified Beneficiary Bank
+              <ShieldCheck size={14} color="#15803d" /> Verified Beneficiary Bank Destination
             </span>
             <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>Active</span>
           </div>
@@ -283,29 +311,58 @@ export function ManualPayoutModal({
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
-              Settlement Amount (INR) *
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              required
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '9px 12px',
-                border: '1px solid #d4cdc5',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#27231f',
-              }}
-            />
-            <span style={{ fontSize: '11px', color: '#827b72', marginTop: '3px', display: 'block' }}>
-              Exact vendor eligible amount ({formatINR(payout.netPayable)})
-            </span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                Amount Transferred (INR) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={remainingPayable}
+                required
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  border: '1px solid #d4cdc5',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#27231f',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <span style={{ fontSize: '10px', color: '#827b72', marginTop: '3px', display: 'block' }}>
+                Remaining payable: {formatINR(remainingPayable)}
+              </span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                Payment Date *
+              </label>
+              <input
+                type="date"
+                required
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  border: '1px solid #d4cdc5',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  color: '#27231f',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <span style={{ fontSize: '10px', color: '#827b72', marginTop: '3px', display: 'block' }}>
+                Actual bank transfer execution date
+              </span>
+            </div>
           </div>
 
           <div style={{ marginBottom: '14px' }}>
@@ -326,10 +383,11 @@ export function ManualPayoutModal({
                 fontSize: '14px',
                 fontFamily: 'monospace',
                 color: '#27231f',
+                boxSizing: 'border-box',
               }}
             />
             <span style={{ fontSize: '11px', color: '#827b72', marginTop: '3px', display: 'block' }}>
-              Required for audit trail and seller ledger payout verification. Must be unique.
+              Mandatory bank transfer identifier for reconciliation. Must be unique.
             </span>
           </div>
 
@@ -339,7 +397,7 @@ export function ManualPayoutModal({
             </label>
             <input
               type="text"
-              placeholder="e.g. Transferred via Corporate NetBanking"
+              placeholder="e.g. Transferred via HDFC Corporate NetBanking / IMPS"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               style={{
@@ -349,6 +407,7 @@ export function ManualPayoutModal({
                 borderRadius: '6px',
                 fontSize: '13px',
                 color: '#27231f',
+                boxSizing: 'border-box',
               }}
             />
           </div>

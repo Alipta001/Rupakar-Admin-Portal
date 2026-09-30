@@ -78,6 +78,9 @@ export const ENDPOINTS = {
     LIST: '/admin/commissions',
     CONFIGS: '/admin/finance/commission-config',
     CREATE_CONFIG: '/admin/finance/commission-config',
+    UPDATE_CONFIG: (id: string) => `/admin/finance/commission-config/${id}`,
+    TOGGLE_CONFIG: (id: string) => `/admin/finance/commission-config/${id}/toggle`,
+    DELETE_CONFIG: (id: string) => `/admin/finance/commission-config/${id}`,
   },
   PAYOUTS: {
     LIST: '/admin/finance/payouts',

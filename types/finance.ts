@@ -41,6 +41,9 @@ export interface Payout {
   failureReason?: string
   processedAt?: string | null
   date: string
+  alreadyPaidAmount?: number
+  totalPayable?: number
+  metadata?: Record<string, unknown>
 }
 
 export interface EligibleSettlement {
@@ -48,6 +51,12 @@ export interface EligibleSettlement {
   vendorName: string
   eligibleAmount: number
   eligibleAmountPaise: number
+  alreadyPaidAmount?: number
+  alreadyPaidAmountPaise?: number
+  totalPayable?: number
+  totalPayablePaise?: number
+  remainingAmount?: number
+  remainingAmountPaise?: number
   entryCount: number
   entryIds: string[]
   ordersCount?: number
@@ -56,6 +65,26 @@ export interface EligibleSettlement {
   status?: string
   existingPayoutId?: string | null
   bankDetails?: (BankSnapshot & { isVerified?: boolean }) | null
+}
+
+export interface CommissionConfigRule {
+  id: string
+  _id?: string
+  scope: 'PRODUCT' | 'VENDOR' | 'CATEGORY' | 'GLOBAL'
+  productId?: any
+  vendorId?: any
+  categoryId?: any
+  commissionType?: 'PERCENTAGE' | 'FIXED'
+  rate: number
+  fixedAmount?: number
+  minPrice?: number
+  maxPrice?: number | null
+  description?: string
+  active: boolean
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface SettlementReadinessVendor {

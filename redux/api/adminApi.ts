@@ -10,7 +10,7 @@ import { Category, Brand } from '@/types/category'
 import { Order } from '@/types/order'
 import { Payment, Refund } from '@/types/payment'
 import { InventoryItem } from '@/types/inventory'
-import { Commission, Payout, Invoice, EligibleSettlement, SettlementReadinessVendor, FinanceOverview } from '@/types/finance'
+import { Commission, CommissionConfigRule, Payout, Invoice, EligibleSettlement, SettlementReadinessVendor, FinanceOverview } from '@/types/finance'
 import { AuthenticityRecord } from '@/types/authenticity'
 import { Coupon } from '@/types/coupon'
 import { Review } from '@/types/review'
@@ -387,8 +387,10 @@ export const adminApi = createApi({
         method: 'GET',
       }),
       transformResponse: (response: unknown): VendorBankAccount | null => {
-        const res = response as { data?: VendorBankAccount | null }
-        return res?.data ?? null
+        if (!response) return null
+        const resObj = response as Record<string, unknown>
+        const item = resObj?.data !== undefined ? (resObj.data as VendorBankAccount) : (response as VendorBankAccount)
+        return item ?? null
       },
       providesTags: (_result, _error, id) => [{ type: 'Vendors', id: `bank-${id}` }],
     }),
@@ -421,8 +423,11 @@ export const adminApi = createApi({
         method: 'GET',
       }),
       transformResponse: (response: unknown): VendorDocument[] => {
-        const res = response as { data?: VendorDocument[] }
-        return res?.data ?? []
+        const items = normalizeArray<any>(response)
+        return items.map((doc) => ({
+          ...doc,
+          id: (doc.id || doc._id)?.toString(),
+        }))
       },
       providesTags: (_result, _error, vendorId) => [{ type: 'Vendors', id: `docs-${vendorId}` }],
     }),
@@ -679,19 +684,41 @@ export const adminApi = createApi({
         normalizePaginatedResult<Commission>(response),
       providesTags: (result) => safeListTags('Commissions', result),
     }),
-    getCommissionConfigs: builder.query<unknown[], void>({
+    getCommissionConfigs: builder.query<CommissionConfigRule[], void>({
       query: () => ({
         url: ENDPOINTS.COMMISSIONS.CONFIGS,
         method: 'GET',
       }),
-      transformResponse: (response: unknown): unknown[] => normalizeArray<unknown>(response),
+      transformResponse: (response: unknown): CommissionConfigRule[] => normalizeArray<CommissionConfigRule>(response),
       providesTags: ['Commissions'],
     }),
-    createCommissionConfig: builder.mutation<unknown, Record<string, unknown>>({
+    createCommissionConfig: builder.mutation<CommissionConfigRule, Partial<CommissionConfigRule>>({
       query: (data) => ({
         url: ENDPOINTS.COMMISSIONS.CREATE_CONFIG,
         method: 'POST',
         data,
+      }),
+      invalidatesTags: ['Commissions'],
+    }),
+    updateCommissionConfig: builder.mutation<CommissionConfigRule, { id: string; data: Partial<CommissionConfigRule> }>({
+      query: ({ id, data }) => ({
+        url: ENDPOINTS.COMMISSIONS.UPDATE_CONFIG(id),
+        method: 'PUT',
+        data,
+      }),
+      invalidatesTags: ['Commissions'],
+    }),
+    toggleCommissionConfig: builder.mutation<{ success: boolean; data: CommissionConfigRule }, string>({
+      query: (id) => ({
+        url: ENDPOINTS.COMMISSIONS.TOGGLE_CONFIG(id),
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Commissions'],
+    }),
+    deleteCommissionConfig: builder.mutation<{ success: boolean }, string>({
+      query: (id) => ({
+        url: ENDPOINTS.COMMISSIONS.DELETE_CONFIG(id),
+        method: 'DELETE',
       }),
       invalidatesTags: ['Commissions'],
     }),
@@ -751,14 +778,14 @@ export const adminApi = createApi({
     }),
     confirmManualPayout: builder.mutation<
       unknown,
-      { id: string; referenceId: string; notes?: string; amount?: number }
+      { id: string; referenceId: string; notes?: string; amount?: number; paymentDate?: string }
     >({
       query: ({ id, ...body }) => ({
         url: ENDPOINTS.PAYOUTS.CONFIRM_MANUAL(id),
         method: 'POST',
         data: body,
       }),
-      invalidatesTags: ['Payouts'],
+      invalidatesTags: ['Payouts', 'Vendors', 'Dashboard'],
     }),
     retryPayout: builder.mutation<unknown, string>({
       query: (id) => ({
@@ -1079,6 +1106,9 @@ export const {
   useGetCommissionsQuery,
   useGetCommissionConfigsQuery,
   useCreateCommissionConfigMutation,
+  useUpdateCommissionConfigMutation,
+  useToggleCommissionConfigMutation,
+  useDeleteCommissionConfigMutation,
   useGetPayoutsQuery,
   useGetFinanceOverviewQuery,
   useGetEligibleSettlementsQuery,

@@ -328,23 +328,28 @@ function DocumentsSection({ vendorId }: { vendorId: string }) {
                 <DocumentStatusBadge status={doc.status} />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: '#827b72' }}>
-                <span>
-                  Submitted: {doc.submittedAt ? new Date(doc.submittedAt).toLocaleDateString('en-IN') : 'N/A'}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: '#827b72', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <span>Submitted: {doc.submittedAt ? new Date(doc.submittedAt).toLocaleDateString('en-IN') : 'N/A'}</span>
+                  {doc.verifiedAt && (
+                    <span style={{ marginLeft: '10px', color: doc.status === 'APPROVED' ? '#15803d' : '#827b72' }}>
+                      · Reviewed: {new Date(doc.verifiedAt).toLocaleDateString('en-IN')}
+                    </span>
+                  )}
                   {doc.rejectionReason && (
                     <span style={{ display: 'block', color: '#c0392b', marginTop: '2px' }}>Reason: {doc.rejectionReason}</span>
                   )}
-                </span>
+                </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {doc.viewUrl && (
+                  {(doc.viewUrl || doc.downloadUrl) && (
                     <a
-                      href={doc.viewUrl}
+                      href={(doc.viewUrl || doc.downloadUrl)!}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="button secondary"
                       style={{ fontSize: '11px', padding: '4px 10px', textDecoration: 'none', display: 'inline-block' }}
                     >
-                      View
+                      View / Download
                     </a>
                   )}
                   {doc.status !== 'APPROVED' && (
