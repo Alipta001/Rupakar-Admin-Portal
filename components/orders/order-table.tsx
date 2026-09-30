@@ -7,7 +7,7 @@ import { Order } from '@/types/order'
 import { OrderStatusBadge } from './order-status-badge'
 import { OrderFilters } from './order-filters'
 import { OrderDetailModal } from './order-detail'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDateTime } from '@/lib/utils/formatters'
 import { useGetOrdersQuery } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -91,7 +91,7 @@ export function OrderTable() {
       formattedAmount: formatINR(o.total ?? 0),
       status: uiStatus,
       paymentStatus: (o.paymentStatus === 'PAID' ? 'Paid' : o.paymentStatus === 'FAILED' ? 'Failed' : 'Pending') as Order['paymentStatus'],
-      date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent',
+      date: o.createdAt ? formatDateTime(o.createdAt) : 'Recent',
       shippingAddress: o.shippingAddressSnapshot?.address1,
       itemsCount: o.items?.length || 1,
     }

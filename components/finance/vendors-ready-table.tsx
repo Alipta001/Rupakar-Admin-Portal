@@ -6,7 +6,7 @@ import {
   useTriggerSettlementBatchMutation,
 } from '@/redux/api/adminApi'
 import { EligibleSettlement, Payout } from '@/types/finance'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDate } from '@/lib/utils/formatters'
 import { ManualPayoutModal } from '@/components/finance/manual-payout-modal'
 import {
   Coins,
@@ -59,7 +59,7 @@ export function VendorsReadyTable({ onPayoutSuccess }: VendorsReadyTableProps) {
           : '****',
         bankSnapshot: item.bankDetails || undefined,
         rawStatus: 'READY',
-        date: item.eligibleSince ? new Date(item.eligibleSince).toLocaleDateString() : 'Ready',
+        date: item.eligibleSince ? formatDate(item.eligibleSince) : 'Ready',
       }
       setSelectedPayout(payout)
       return
@@ -339,11 +339,7 @@ export function VendorsReadyTable({ onPayoutSuccess }: VendorsReadyTableProps) {
                 const isProcessingThis = loadingVendorId === item.vendorId
                 const orders = item.ordersCount || item.entryCount || 1
                 const dateStr = item.eligibleSince
-                  ? new Date(item.eligibleSince).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })
+                  ? formatDate(item.eligibleSince)
                   : 'Ready'
 
                 return (

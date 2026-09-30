@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { AdminNotification } from '@/types/notification'
+import { formatDateTime } from '@/lib/utils/formatters'
 import { useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -76,7 +77,7 @@ export default function NotificationsPage() {
     },
     {
       header: 'Time',
-      cell: (n) => <span className="subtle">{new Date(n.createdAt).toLocaleDateString()}</span>,
+      cell: (n) => <span className="subtle">{formatDateTime(n.createdAt)}</span>,
     },
     {
       header: 'Status',

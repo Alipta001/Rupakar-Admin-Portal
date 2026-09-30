@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { SupportTicket } from '@/types/support'
+import { formatDateTime } from '@/lib/utils/formatters'
 import { useGetSupportTicketsQuery } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -78,7 +79,7 @@ export default function SupportPage() {
     },
     {
       header: 'Date',
-      cell: (t) => <span className="subtle">{new Date(t.createdAt).toLocaleDateString()}</span>,
+      cell: (t) => <span className="subtle">{formatDateTime(t.createdAt)}</span>,
     },
   ]
 

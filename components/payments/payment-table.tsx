@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { Payment } from '@/types/payment'
 import { PaymentStatusBadge } from './payment-status-badge'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDateTime } from '@/lib/utils/formatters'
 import { useGetPaymentsQuery } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -47,7 +47,7 @@ export function PaymentTable() {
     gateway: (p.method === 'COD' || p.gateway === 'Cash on Delivery' ? 'Cash on Delivery' : 'Razorpay') as Payment['gateway'],
     gatewayTransactionId: p.transactionId || p.paymentId || p.razorpayPaymentId || `pay_${(p.id || p._id || '').slice(-8)}`,
     status: (p.status === 'CAPTURED' || p.status === 'SUCCESS' || p.status === 'PAID' ? 'Captured' : p.status === 'FAILED' ? 'Failed' : 'Pending') as Payment['status'],
-    date: p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent',
+    date: p.createdAt ? formatDateTime(p.createdAt) : 'Recent',
   }))
 
   const columns: Column<Payment>[] = [

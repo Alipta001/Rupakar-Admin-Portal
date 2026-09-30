@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Product } from '@/types/product'
 import { ProductStatusBadge } from './product-status-badge'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDateTime } from '@/lib/utils/formatters'
 import { useGetProductByIdQuery } from '@/redux/api/adminApi'
 import {
   CheckCircle2,
@@ -550,16 +550,16 @@ export function ProductDetailModal({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Clock size={12} />
-                <span>Created: {p.createdAt ? new Date(p.createdAt).toLocaleString() : 'N/A'}</span>
+                <span>Created: {formatDateTime(p.createdAt)}</span>
               </div>
               {p.updatedAt && (
-                <div>Updated: {new Date(p.updatedAt).toLocaleString()}</div>
+                <div>Updated: {formatDateTime(p.updatedAt)}</div>
               )}
               {p.publishedAt && (
-                <div>Published: {new Date(p.publishedAt).toLocaleString()}</div>
+                <div>Published: {formatDateTime(p.publishedAt)}</div>
               )}
               {p.reviewedAt && (
-                <div>Reviewed: {new Date(p.reviewedAt).toLocaleString()}</div>
+                <div>Reviewed: {formatDateTime(p.reviewedAt)}</div>
               )}
             </div>
 

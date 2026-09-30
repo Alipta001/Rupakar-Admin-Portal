@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { InventoryItem } from '@/types/inventory'
+import { formatDate } from '@/lib/utils/formatters'
 import { InventoryFilters } from './inventory-filters'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { useGetInventoryQuery } from '@/redux/api/adminApi'
@@ -56,7 +57,7 @@ export function InventoryTable() {
       reservedStock: item.reservedStock ?? item.reserved ?? 0,
       safetyThreshold: item.safetyThreshold ?? 5,
       status: uiStatus,
-      lastUpdated: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'Today',
+      lastUpdated: item.updatedAt ? formatDate(item.updatedAt) : 'Today',
     }
   })
 

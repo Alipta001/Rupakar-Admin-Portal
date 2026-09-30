@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { Commission } from '@/types/finance'
 import { StatusBadge } from '@/components/shared/status-badge'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDate } from '@/lib/utils/formatters'
 import { useGetCommissionsQuery } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -47,7 +47,7 @@ export function CommissionTable() {
     formattedAmount: formatINR(com.amount ?? 0),
     ruleSource: (com.ruleSource || 'Category') as Commission['ruleSource'],
     status: (com.status === 'COLLECTED' ? 'Collected' : com.status === 'REVERSED' ? 'Reversed' : 'Pending') as Commission['status'],
-    date: com.createdAt ? new Date(com.createdAt).toLocaleDateString() : 'Recent',
+    date: com.createdAt ? formatDate(com.createdAt) : 'Recent',
   }))
 
   const columns: Column<Commission>[] = [

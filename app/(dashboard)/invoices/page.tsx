@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { Invoice } from '@/types/finance'
 import { StatusBadge } from '@/components/shared/status-badge'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDate } from '@/lib/utils/formatters'
 import { useGetInvoicesQuery } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -48,7 +48,7 @@ export default function InvoicesPage() {
     amount: inv.amount ?? inv.total ?? 0,
     formattedAmount: formatINR(inv.amount ?? inv.total ?? 0),
     status: (inv.status === 'GENERATED' || inv.status === 'Generated' ? 'Generated' : 'Pending') as Invoice['status'],
-    generatedDate: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : 'Recent',
+    generatedDate: inv.createdAt ? formatDate(inv.createdAt) : 'Recent',
     downloadUrl: inv.downloadUrl || inv.pdfUrl,
   }))
 

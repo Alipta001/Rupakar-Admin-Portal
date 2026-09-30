@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { Refund } from '@/types/payment'
 import { StatusBadge } from '@/components/shared/status-badge'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDate } from '@/lib/utils/formatters'
 import { useGetRefundsQuery } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -48,7 +48,7 @@ export default function RefundsPage() {
     reason: r.reason || 'Customer requested return/refund',
     status: (r.status === 'COMPLETED' ? 'Completed' : r.status === 'REJECTED' ? 'Rejected' : 'Pending') as Refund['status'],
     gatewayReference: r.gatewayReference || r.refundId || `rfnd_${(r.id || r._id || '').slice(-8)}`,
-    date: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recent',
+    date: r.createdAt ? formatDate(r.createdAt) : 'Recent',
   }))
 
   const columns: Column<Refund>[] = [

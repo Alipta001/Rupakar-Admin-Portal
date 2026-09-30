@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { AuditLog } from '@/types/audit'
+import { formatDateTime } from '@/lib/utils/formatters'
 import { useGetAuditLogsQuery } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -73,7 +74,7 @@ export default function AuditLogsPage() {
     },
     {
       header: 'Timestamp',
-      cell: (l) => <span className="subtle">{new Date(l.createdAt).toLocaleDateString()}</span>,
+      cell: (l) => <span className="subtle">{formatDateTime(l.createdAt)}</span>,
     },
     {
       header: 'Status',

@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Vendor, VendorBankAccount, VendorDocument } from '@/types/vendor'
 import { VendorStatusBadge } from './vendor-status-badge'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDate } from '@/lib/utils/formatters'
 import {
   useGetVendorBankAccountQuery,
   useVerifyVendorBankMutation,
@@ -128,13 +128,13 @@ function BankSection({
             {bank.submittedAt && (
               <div>
                 <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Submitted</span>
-                <span>{new Date(bank.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span>{formatDate(bank.submittedAt)}</span>
               </div>
             )}
             {bank.verificationStatus === 'VERIFIED' && bank.verifiedAt && (
               <div>
                 <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Verified On</span>
-                <span>{new Date(bank.verifiedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span>{formatDate(bank.verifiedAt)}</span>
               </div>
             )}
             {bank.verificationStatus === 'REJECTED' && bank.rejectionReason && (
@@ -330,10 +330,10 @@ function DocumentsSection({ vendorId }: { vendorId: string }) {
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: '#827b72', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
-                  <span>Submitted: {doc.submittedAt ? new Date(doc.submittedAt).toLocaleDateString('en-IN') : 'N/A'}</span>
+                  <span>Submitted: {doc.submittedAt ? formatDate(doc.submittedAt) : 'N/A'}</span>
                   {doc.verifiedAt && (
                     <span style={{ marginLeft: '10px', color: doc.status === 'APPROVED' ? '#15803d' : '#827b72' }}>
-                      · Reviewed: {new Date(doc.verifiedAt).toLocaleDateString('en-IN')}
+                      · Reviewed: {formatDate(doc.verifiedAt)}
                     </span>
                   )}
                   {doc.rejectionReason && (

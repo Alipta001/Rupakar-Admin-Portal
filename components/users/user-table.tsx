@@ -6,7 +6,7 @@ import { User } from '@/types/user'
 import { UserStatusBadge } from './user-status-badge'
 import { UserActions } from './user-actions'
 import { UserFilters } from './user-filters'
-import { formatINR } from '@/lib/utils/formatters'
+import { formatINR, formatDate } from '@/lib/utils/formatters'
 import { useGetUsersQuery, useUpdateUserStatusMutation } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -65,7 +65,7 @@ export function UserTable() {
     totalSpent: u.totalSpent ?? 0,
     status: (u.status === 'ACTIVE' || u.status === 'Active' ? 'Active' : 'Suspended') as User['status'],
     verified: u.verified ?? true,
-    registeredDate: u.registeredDate || u.createdAt ? new Date(u.registeredDate || u.createdAt).toLocaleDateString() : 'Recent',
+    registeredDate: u.registeredDate || u.createdAt ? formatDate(u.registeredDate || u.createdAt) : 'Recent',
   }))
 
   const columns: Column<User>[] = [
