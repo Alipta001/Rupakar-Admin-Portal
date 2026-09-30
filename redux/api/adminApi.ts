@@ -1006,16 +1006,31 @@ export const adminApi = createApi({
       providesTags: (result) => safeListTags('Support', result),
     }),
 
+    getSupportTicketById: builder.query<SupportTicket, string>({
+      query: (id) => ({
+        url: ENDPOINTS.SUPPORT.TICKET_DETAIL(id),
+        method: 'GET',
+      }),
+      transformResponse: (response: any) => response?.data || response,
+      providesTags: (result, error, id) => [{ type: 'Support', id }],
+    }),
+
     updateSupportTicket: builder.mutation<
       SupportTicket,
-      { ticketId: string; status?: string; responseMessage?: string; priority?: string }
+      { ticketId: string; status?: string; message?: string; responseMessage?: string; priority?: string; assignedTo?: string | null }
     >({
-      query: ({ ticketId, ...data }) => ({
+      query: ({ ticketId, message, responseMessage, ...data }) => ({
         url: ENDPOINTS.SUPPORT.UPDATE_TICKET(ticketId),
         method: 'PATCH',
-        data,
+        data: {
+          ...data,
+          ...(message || responseMessage ? { message: message || responseMessage } : {}),
+        },
       }),
-      invalidatesTags: ['Support'],
+      invalidatesTags: (result, error, { ticketId }) => [
+        'Support',
+        { type: 'Support', id: ticketId },
+      ],
     }),
 
     // 21. Profile
@@ -1130,6 +1145,7 @@ export const {
   useGetAnalyticsQuery,
   useGetAuditLogsQuery,
   useGetSupportTicketsQuery,
+  useGetSupportTicketByIdQuery,
   useUpdateSupportTicketMutation,
   useGetProfileQuery,
   useUpdateProfileMutation,

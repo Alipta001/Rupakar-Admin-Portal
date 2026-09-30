@@ -7,6 +7,8 @@ import { navGroups } from '@/config/navigation'
 import { useAuth } from '@/hooks/use-auth'
 import { canAccessRoute } from '@/lib/permissions/access'
 
+import { useGetNotificationsQuery } from '@/redux/api/adminApi'
+
 export interface NavigationProps {
   onItemClick?: () => void
 }
@@ -14,6 +16,11 @@ export interface NavigationProps {
 export function Navigation({ onItemClick }: NavigationProps) {
   const pathname = usePathname()
   const { role } = useAuth()
+  const { data: notifications } = useGetNotificationsQuery()
+
+  const unreadNotificationsCount = Array.isArray(notifications)
+    ? notifications.filter(n => !n.read && !n.readAt).length
+    : 0
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === '/dashboard'
@@ -32,6 +39,10 @@ export function Navigation({ onItemClick }: NavigationProps) {
             {visibleItems.map(item => {
               const Icon = item.icon
               const active = isActive(item.href)
+              const badgeCount = item.href === '/notifications'
+                ? (unreadNotificationsCount > 0 ? String(unreadNotificationsCount) : undefined)
+                : item.count
+
               return (
                 <Link
                   key={item.label}
@@ -42,7 +53,7 @@ export function Navigation({ onItemClick }: NavigationProps) {
                 >
                   <Icon size={17} />
                   <span>{item.label}</span>
-                  {item.count && <em>{item.count}</em>}
+                  {badgeCount && <em>{badgeCount}</em>}
                 </Link>
               )
             })}

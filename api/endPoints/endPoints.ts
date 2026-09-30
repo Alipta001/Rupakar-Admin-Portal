@@ -122,6 +122,7 @@ export const ENDPOINTS = {
   },
   SUPPORT: {
     TICKETS: '/admin/support/tickets',
+    TICKET_DETAIL: (id: string) => `/admin/support/tickets/${id}`,
     UPDATE_TICKET: (id: string) => `/admin/support/tickets/${id}`,
   },
   PROFILE: {

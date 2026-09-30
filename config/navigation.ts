@@ -44,8 +44,8 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Commerce',
     items: [
-      { label: 'Orders', href: '/orders', icon: ShoppingBag, count: '18' },
-      { label: 'Products', href: '/products', icon: Box, count: '24' },
+      { label: 'Orders', href: '/orders', icon: ShoppingBag },
+      { label: 'Products', href: '/products', icon: Box },
       { label: 'Inventory', href: '/inventory', icon: PackageCheck },
       { label: 'Categories', href: '/categories', icon: Tag },
       { label: 'Brands', href: '/brands', icon: Tag },
@@ -55,11 +55,11 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Marketplace',
     items: [
-      { label: 'Vendors', href: '/vendors', icon: Store, count: '7' },
+      { label: 'Vendors', href: '/vendors', icon: Store },
       { label: 'Customers', href: '/users', icon: Users },
-      { label: 'Reviews', href: '/reviews', icon: ClipboardList, count: '12' },
+      { label: 'Reviews', href: '/reviews', icon: ClipboardList },
       { label: 'Authenticity', href: '/authenticity', icon: ShieldCheck },
-      { label: 'Support', href: '/support', icon: UserRound, count: '4' },
+      { label: 'Support', href: '/support', icon: UserRound },
     ],
   },
   {
@@ -68,7 +68,7 @@ export const navGroups: NavGroup[] = [
       { label: 'Payments', href: '/payments', icon: CreditCard },
       { label: 'Refunds', href: '/refunds', icon: ArrowDownRight },
       { label: 'Commissions', href: '/commissions', icon: CircleDollarSign },
-      { label: 'Payouts', href: '/payouts', icon: WalletCards, count: '9' },
+      { label: 'Payouts', href: '/payouts', icon: WalletCards },
       { label: 'Invoices', href: '/invoices', icon: FileText },
     ],
   },
