@@ -58,8 +58,11 @@ export function OrderDetailModal({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '12px' }}>
           <div>
             <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Customer</span>
-            <strong>{order.customer}</strong>
-            <span style={{ display: 'block', fontSize: '11px', color: '#827b72' }}>{order.customerEmail || 'customer@example.com'}</span>
+            <strong>{order.customer || '—'}</strong>
+            <span style={{ display: 'block', fontSize: '11px', color: '#827b72' }}>{order.customerEmail || '—'}</span>
+            {order.customerPhone && (
+              <span style={{ display: 'block', fontSize: '11px', color: '#827b72' }}>{order.customerPhone}</span>
+            )}
           </div>
           <div>
             <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Total Amount</span>
@@ -70,15 +73,33 @@ export function OrderDetailModal({
 
         <div style={{ marginTop: '18px' }}>
           <h3 style={{ fontSize: '12px', fontWeight: 600, margin: '0 0 8px' }}>Vendor Orders Breakdown</h3>
-          <div style={{ background: '#fcfbf9', border: '1px solid #e9e5df', borderRadius: '6px', padding: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <strong style={{ fontSize: '12px' }}>{order.vendor}</strong>
-                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#827b72' }}>{order.itemSummary}</p>
-              </div>
-              <OrderStatusBadge status={order.status} />
+          {order.vendorOrders && order.vendorOrders.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {order.vendorOrders.map((vo) => (
+                <div key={vo.id} style={{ background: '#fcfbf9', border: '1px solid #e9e5df', borderRadius: '6px', padding: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong style={{ fontSize: '12px' }}>{vo.vendorName}</strong>
+                      <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#827b72' }}>
+                        {vo.items.map((it) => `${it.title} (x${it.quantity})`).join(', ') || order.itemSummary}
+                      </p>
+                    </div>
+                    <OrderStatusBadge status={vo.status} />
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div style={{ background: '#fcfbf9', border: '1px solid #e9e5df', borderRadius: '6px', padding: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong style={{ fontSize: '12px' }}>{order.vendor || '—'}</strong>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#827b72' }}>{order.itemSummary}</p>
+                </div>
+                <OrderStatusBadge status={order.status} />
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ marginTop: '18px' }}>

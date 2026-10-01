@@ -31,7 +31,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
           <div className="brand-mark">R</div>
           <div>
-            <strong>rupakar</strong>
+            <strong>Rupakar</strong>
             <span>ADMIN PORTAL</span>
           </div>
         </Link>

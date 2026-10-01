@@ -40,21 +40,36 @@ export default function AuthenticityPage() {
     ? data
     : []
 
-  const certs: AuthenticityRecord[] = rawList.map((c: any) => ({
-    id: c.id || c._id || '',
-    productId: c.productId || '',
-    productTitle: c.productTitle || c.title || 'Artisan Craft Item',
-    productSku: c.sku || `SKU-${(c.id || c._id || '').slice(-6).toUpperCase()}`,
-    vendorId: c.vendorId || '',
-    vendorName: c.vendorName || 'Artisan Guild',
-    artisanName: c.artisanName || c.vendorName || 'Master Craftsman',
-    region: c.region || c.state || 'West Bengal',
-    district: c.district || 'Heritage Cluster',
-    certificateNumber: c.certificateNumber || `AUTH-GI-${(c.id || c._id || '').slice(-5).toUpperCase()}`,
-    giTagNumber: c.giTagNumber || 'GI-Certified',
-    status: (c.status === 'VERIFIED' ? 'VERIFIED' : c.status === 'REJECTED' ? 'REJECTED' : 'PENDING') as AuthenticityRecord['status'],
-    createdAt: c.createdAt || new Date().toISOString(),
-  }))
+  const certs: AuthenticityRecord[] = rawList.map((c: any) => {
+    const artisan = c.artisanName || c.artisan || c.vendorName || '—'
+    const certNumber = c.certificateNumber || c.certCode || '—'
+    const giTag = c.giTagNumber || c.craftSource || '—'
+    const region = c.region || '—'
+    const district = c.district || '—'
+    const rawStatus = String(c.status || c.uiStatus || '').toUpperCase()
+    const status: AuthenticityRecord['status'] =
+      rawStatus === 'VERIFIED' || rawStatus === 'APPROVED'
+        ? 'VERIFIED'
+        : rawStatus === 'REJECTED'
+        ? 'REJECTED'
+        : 'PENDING'
+
+    return {
+      id: c.id || c._id || '',
+      productId: c.productId || c.id || c._id || '',
+      productTitle: c.productTitle || c.title || 'Artisan Craft Item',
+      productSku: c.sku || c.productSku || '—',
+      vendorId: c.vendorId || '',
+      vendorName: c.vendorName || artisan,
+      artisanName: artisan,
+      region,
+      district,
+      certificateNumber: certNumber,
+      giTagNumber: giTag,
+      status,
+      createdAt: c.createdAt || new Date().toISOString(),
+    }
+  })
 
   const handleVerify = async (id: string, status: 'VERIFIED' | 'REJECTED') => {
     try {
@@ -80,13 +95,17 @@ export default function AuthenticityPage() {
       cell: (c) => (
         <>
           <span>{c.artisanName}</span>
-          <span className="subtle">{c.region}, {c.district}</span>
+          <span className="subtle">
+            {c.region !== '—' || c.district !== '—'
+              ? [c.region, c.district].filter((x) => x && x !== '—').join(', ')
+              : '—'}
+          </span>
         </>
       ),
     },
     {
       header: 'GI / Craft Source',
-      cell: (c) => c.giTagNumber || 'State Handloom Certified',
+      cell: (c) => c.giTagNumber,
     },
     {
       header: 'Verification Status',

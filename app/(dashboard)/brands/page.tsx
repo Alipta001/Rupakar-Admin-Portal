@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, Column } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
-import { useGetBrandsQuery, useCreateBrandMutation } from '@/redux/api/adminApi'
+import { useGetBrandsQuery, useCreateBrandMutation, useUpdateBrandMutation, useDeleteBrandMutation } from '@/redux/api/adminApi'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
 import { Brand } from '@/types/category'
@@ -13,6 +13,8 @@ import { Brand } from '@/types/category'
 export default function BrandsPage() {
   const { data: rawBrands, isLoading, error, refetch } = useGetBrandsQuery()
   const [createBrand, { isLoading: isCreating }] = useCreateBrandMutation()
+  const [updateBrand, { isLoading: isUpdating }] = useUpdateBrandMutation()
+  const [deleteBrand, { isLoading: isDeleting }] = useDeleteBrandMutation()
   const [showModal, setShowModal] = useState(false)
   const [brandName, setBrandName] = useState('')
   const [brandSlug, setBrandSlug] = useState('')
@@ -46,7 +48,7 @@ export default function BrandsPage() {
     slug: b.slug || '',
     description: b.description || 'Master artisan guild / producer label',
     productsCount: b.productsCount || 0,
-    isActive: b.isActive !== false,
+    isActive: b.isActive !== false && b.status !== 'INACTIVE',
   }))
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -64,6 +66,26 @@ export default function BrandsPage() {
       setBrandDesc('')
     } catch (err) {
       console.error('Failed to create brand:', err)
+    }
+  }
+
+  const handleToggleArchive = async (b: Brand) => {
+    try {
+      const nextStatus = b.isActive ? 'INACTIVE' : 'ACTIVE'
+      await updateBrand({ id: b.id, data: { status: nextStatus } as any }).unwrap()
+    } catch (err: any) {
+      console.error('Failed to update brand status:', err)
+      alert(err?.data?.message || err?.message || 'Failed to update brand status')
+    }
+  }
+
+  const handleDelete = async (b: Brand) => {
+    if (!window.confirm(`Are you sure you want to delete brand "${b.name}"?`)) return
+    try {
+      await deleteBrand(b.id).unwrap()
+    } catch (err: any) {
+      console.error('Failed to delete brand:', err)
+      alert(err?.data?.message || err?.message || 'Failed to delete brand')
     }
   }
 
@@ -89,6 +111,31 @@ export default function BrandsPage() {
     {
       header: 'Status',
       cell: (b) => <StatusBadge status={b.isActive ? 'Active' : 'Inactive'} />,
+    },
+    {
+      header: '',
+      cell: (b) => (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            className="button secondary sm"
+            style={{ fontSize: '11px', padding: '4px 10px' }}
+            onClick={() => handleToggleArchive(b)}
+            disabled={isUpdating}
+          >
+            {b.isActive ? 'Archive' : 'Activate'}
+          </button>
+          <button
+            type="button"
+            className="button secondary sm"
+            style={{ fontSize: '11px', padding: '4px 10px', color: '#b91c1c', borderColor: '#fca5a5' }}
+            onClick={() => handleDelete(b)}
+            disabled={isDeleting}
+          >
+            Delete
+          </button>
+        </div>
+      ),
     },
   ]
 

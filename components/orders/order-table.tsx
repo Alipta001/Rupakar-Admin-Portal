@@ -58,35 +58,94 @@ export function OrderTable() {
 
     const firstItem = o.items?.[0]
     const itemSummary = firstItem
-      ? `${firstItem.productName || firstItem.title || 'Artisan item'}${o.items.length > 1 ? ` +${o.items.length - 1} more` : ''}`
+      ? `${firstItem.productName || firstItem.title || 'Product'}${o.items.length > 1 ? ` +${o.items.length - 1} more` : ''}`
       : 'Order item'
 
-    const vendorName =
-      firstItem?.vendorName ||
-      firstItem?.productSnapshot?.vendorName ||
-      o.vendorName ||
-      'Artisan Guild'
+    const extractVendorName = (vObj: any) => {
+      if (!vObj) return ''
+      if (typeof vObj === 'string') return vObj
+      return vObj.businessName || vObj.storeName || vObj.name || vObj.legalName || ''
+    }
+
+    const vendorNamesSet = new Set<string>()
+    if (Array.isArray(o.items)) {
+      for (const it of o.items) {
+        const vName =
+          extractVendorName(it.vendorId) ||
+          it.vendorName ||
+          it.productSnapshot?.vendorName ||
+          it.productSnapshot?.storeName ||
+          it.productSnapshot?.businessName
+        if (vName && typeof vName === 'string' && vName.trim()) {
+          vendorNamesSet.add(vName.trim())
+        }
+      }
+    }
+    if (vendorNamesSet.size === 0 && Array.isArray(o.vendorOrders)) {
+      for (const vo of o.vendorOrders) {
+        const vName = extractVendorName(vo.vendorId) || vo.vendorName
+        if (vName && typeof vName === 'string' && vName.trim()) {
+          vendorNamesSet.add(vName.trim())
+        }
+      }
+    }
+    if (vendorNamesSet.size === 0 && o.vendorName) {
+      vendorNamesSet.add(String(o.vendorName).trim())
+    }
+    const vendorName = vendorNamesSet.size > 0 ? Array.from(vendorNamesSet).join(', ') : '—'
 
     const customerName =
-      o.customerName ||
-      o.customerId?.name ||
+      (o.customerId && typeof o.customerId === 'object' && o.customerId.name) ||
       o.shippingAddressSnapshot?.name ||
-      'Customer'
+      o.customerName ||
+      o.billingAddressSnapshot?.name ||
+      '—'
 
     const customerEmail =
-      o.customerEmail ||
-      o.customerId?.email ||
+      (o.customerId && typeof o.customerId === 'object' && o.customerId.email) ||
       o.shippingAddressSnapshot?.email ||
+      o.customerEmail ||
+      o.billingAddressSnapshot?.email ||
       ''
+
+    const customerPhone =
+      (o.customerId && typeof o.customerId === 'object' && o.customerId.phone) ||
+      o.shippingAddressSnapshot?.phone ||
+      o.customerPhone ||
+      o.billingAddressSnapshot?.phone ||
+      ''
+
+    const vendorOrdersList = Array.isArray(o.vendorOrders) && o.vendorOrders.length > 0
+      ? o.vendorOrders.map((vo: any) => {
+          const vName = extractVendorName(vo.vendorId) || vo.vendorName || vendorName || '—'
+          return {
+            id: vo._id || vo.id,
+            vendorId: vo.vendorId?._id || vo.vendorId || '',
+            vendorName: vName,
+            items: (vo.items || []).map((it: any) => ({
+              id: it._id || it.productId,
+              title: it.productName || it.title || 'Product',
+              quantity: it.quantity || 1,
+              price: it.unitPrice || it.price || 0,
+              vendorName: vName,
+              sku: it.sku,
+            })),
+            subtotal: vo.subtotal || 0,
+            shippingCost: vo.shipping || 0,
+            status: vo.status || uiStatus,
+          }
+        })
+      : undefined
 
     return {
       id: o.id || o._id || '',
       orderNumber: o.orderNumber ? `#${o.orderNumber}` : `#RP-${(o.id || o._id || '').slice(-6).toUpperCase()}`,
       customer: customerName,
       customerEmail,
-      customerPhone: o.customerPhone || o.shippingAddressSnapshot?.phone,
+      customerPhone,
       itemSummary,
       vendor: vendorName,
+      vendorOrders: vendorOrdersList,
       amount: o.total ?? 0,
       formattedAmount: formatINR(o.total ?? 0),
       status: uiStatus,
