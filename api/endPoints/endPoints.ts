@@ -60,6 +60,9 @@ export const ENDPOINTS = {
     LIST: '/admin/shipments',
     DETAIL: (id: string) => `/admin/shipments/${id}`,
     UPDATE_STATUS: (id: string) => `/admin/shipments/${id}/status`,
+    LABEL: (id: string) => `/admin/shipments/${id}/label`,
+    RETRY_PICKUP: (id: string) => `/admin/shipments/${id}/retry-pickup`,
+    RESYNC_TRACKING: (id: string) => `/admin/shipments/${id}/resync-tracking`,
   },
   PAYMENTS: {
     LIST: '/admin/payments',

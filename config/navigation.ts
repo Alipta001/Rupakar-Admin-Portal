@@ -16,6 +16,7 @@ import {
   Tag,
   TicketCheck,
   TrendingUp,
+  Truck,
   UserRound,
   Users,
   WalletCards,
@@ -45,6 +46,7 @@ export const navGroups: NavGroup[] = [
     label: 'Commerce',
     items: [
       { label: 'Orders', href: '/orders', icon: ShoppingBag },
+      { label: 'Shipments', href: '/shipments', icon: Truck },
       { label: 'Products', href: '/products', icon: Box },
       { label: 'Inventory', href: '/inventory', icon: PackageCheck },
       { label: 'Categories', href: '/categories', icon: Tag },

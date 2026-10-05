@@ -8,6 +8,7 @@ import { Vendor, VendorBankAccount, VendorDocument } from '@/types/vendor'
 import { Product } from '@/types/product'
 import { Category, Brand } from '@/types/category'
 import { Order } from '@/types/order'
+import { Shipment } from '@/types/shipment'
 import { Payment, Refund } from '@/types/payment'
 import { InventoryItem } from '@/types/inventory'
 import { Commission, CommissionConfigRule, Payout, Invoice, EligibleSettlement, SettlementReadinessVendor, FinanceOverview } from '@/types/finance'
@@ -256,6 +257,7 @@ export const adminApi = createApi({
     'Categories',
     'Brands',
     'Orders',
+    'Shipments',
     'Payments',
     'Refunds',
     'Inventory',
@@ -635,6 +637,58 @@ export const adminApi = createApi({
         method: 'GET',
       }),
       providesTags: (_result, _error, id) => [{ type: 'Orders', id }],
+    }),
+
+    // 7.1 Shipments
+    getShipments: builder.query<PaginatedResult<Shipment>, QueryParams | void>({
+      query: (params) => ({
+        url: ENDPOINTS.SHIPMENTS.LIST,
+        method: 'GET',
+        params: params || {},
+      }),
+      transformResponse: (response: unknown): PaginatedResult<Shipment> =>
+        normalizePaginatedResult<Shipment>(response),
+      providesTags: (result) => safeListTags('Shipments' as any, result),
+    }),
+    getShipmentById: builder.query<Shipment, string>({
+      query: (id) => ({
+        url: ENDPOINTS.SHIPMENTS.DETAIL(id),
+        method: 'GET',
+      }),
+      providesTags: (_result, _error, id) => [{ type: 'Shipments' as any, id }],
+    }),
+    updateShipmentStatus: builder.mutation<Shipment, { id: string; status: string; reason?: string }>({
+      query: ({ id, status, reason }) => ({
+        url: ENDPOINTS.SHIPMENTS.UPDATE_STATUS(id),
+        method: 'PATCH',
+        data: { status, reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Shipments' as any, id },
+        { type: 'Shipments' as any, id: 'LIST' },
+        { type: 'Orders', id: 'LIST' },
+      ],
+    }),
+    retryShipmentPickup: builder.mutation<Shipment, { id: string }>({
+      query: ({ id }) => ({
+        url: ENDPOINTS.SHIPMENTS.RETRY_PICKUP(id),
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Shipments' as any, id },
+        { type: 'Shipments' as any, id: 'LIST' },
+      ],
+    }),
+    resyncShipmentTracking: builder.mutation<Shipment, { id: string }>({
+      query: ({ id }) => ({
+        url: ENDPOINTS.SHIPMENTS.RESYNC_TRACKING(id),
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Shipments' as any, id },
+        { type: 'Shipments' as any, id: 'LIST' },
+        { type: 'Orders', id: 'LIST' },
+      ],
     }),
 
     // 8. Payments
@@ -1115,6 +1169,11 @@ export const {
   useDeleteBrandMutation,
   useGetOrdersQuery,
   useGetOrderByIdQuery,
+  useGetShipmentsQuery,
+  useGetShipmentByIdQuery,
+  useUpdateShipmentStatusMutation,
+  useRetryShipmentPickupMutation,
+  useResyncShipmentTrackingMutation,
   useGetPaymentsQuery,
   useGetRefundsQuery,
   useGetInventoryQuery,
