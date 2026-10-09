@@ -27,6 +27,12 @@ export const ENDPOINTS = {
     BANK_ACCOUNT: (id: string) => `/vendors/admin/${id}/bank-account`,
     VERIFY_BANK: (id: string) => `/vendors/admin/${id}/bank-account/verify`,
     REJECT_BANK: (id: string) => `/vendors/admin/${id}/bank-account/reject`,
+    PICKUP_LOCATIONS: '/admin/vendors/pickup-locations',
+    PICKUP_LOCATION_DETAIL: (vendorId: string) => `/admin/vendors/${vendorId}/pickup-location`,
+    APPROVE_PICKUP_LOCATION: (vendorId: string) => `/admin/vendors/${vendorId}/pickup-location/approve`,
+    DEACTIVATE_PICKUP_LOCATION: (vendorId: string) => `/admin/vendors/${vendorId}/pickup-location/deactivate`,
+    ARCHIVE_PICKUP_LOCATION: (vendorId: string) => `/admin/vendors/${vendorId}/pickup-location/archive`,
+    REACTIVATE_PICKUP_LOCATION: (vendorId: string) => `/admin/vendors/${vendorId}/pickup-location/reactivate`,
   },
   PRODUCTS: {
     LIST: '/admin/products',
@@ -63,6 +69,9 @@ export const ENDPOINTS = {
     LABEL: (id: string) => `/admin/shipments/${id}/label`,
     RETRY_PICKUP: (id: string) => `/admin/shipments/${id}/retry-pickup`,
     RESYNC_TRACKING: (id: string) => `/admin/shipments/${id}/resync-tracking`,
+    RETRY_FULFILLMENT: (id: string) => `/admin/shipments/${id}/retry-fulfillment`,
+    ASSIGN_AWB: (id: string) => `/admin/shipments/${id}/assign-awb`,
+    GENERATE_LABEL: (id: string) => `/admin/shipments/${id}/generate-label`,
   },
   PAYMENTS: {
     LIST: '/admin/payments',

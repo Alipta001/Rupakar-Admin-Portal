@@ -8,8 +8,11 @@ import {
   useUpdateShipmentStatusMutation,
   useRetryShipmentPickupMutation,
   useResyncShipmentTrackingMutation,
+  useRetryShipmentFulfillmentMutation,
+  useAssignShipmentAwbMutation,
+  useGenerateShipmentLabelMutation,
 } from '@/redux/api/adminApi'
-import { Download, RefreshCw, Send, Truck } from 'lucide-react'
+import { Download, FileText, RefreshCw, Send, Tag, Truck } from 'lucide-react'
 
 export function ShipmentDetailModal({
   shipment,
@@ -27,6 +30,9 @@ export function ShipmentDetailModal({
   const [updateStatus, { isLoading: isUpdating }] = useUpdateShipmentStatusMutation()
   const [retryPickup, { isLoading: isRetryingPickup }] = useRetryShipmentPickupMutation()
   const [resyncTracking, { isLoading: isResyncing }] = useResyncShipmentTrackingMutation()
+  const [retryFulfillment, { isLoading: isRetryingFulfillment }] = useRetryShipmentFulfillmentMutation()
+  const [assignAwb, { isLoading: isAssigningAwb }] = useAssignShipmentAwbMutation()
+  const [generateLabel, { isLoading: isGeneratingLabel }] = useGenerateShipmentLabelMutation()
 
   if (!isOpen || !shipment) return null
 
@@ -64,8 +70,39 @@ export function ShipmentDetailModal({
     }
   }
 
+  const handleRetryFulfillment = async () => {
+    try {
+      await retryFulfillment({ id: shipment._id }).unwrap()
+      setActionMessage('Shipment fulfillment workflow resumed and updated successfully')
+    } catch (err: any) {
+      setActionMessage(err?.data?.message || 'Failed to retry shipment fulfillment')
+    }
+  }
+
+  const handleAssignAwb = async () => {
+    try {
+      await assignAwb({ id: shipment._id }).unwrap()
+      setActionMessage('AWB assigned successfully')
+    } catch (err: any) {
+      setActionMessage(err?.data?.message || 'Failed to assign AWB')
+    }
+  }
+
+  const handleGenerateLabel = async () => {
+    try {
+      await generateLabel({ id: shipment._id }).unwrap()
+      setActionMessage('Label generated successfully')
+    } catch (err: any) {
+      setActionMessage(err?.data?.message || 'Failed to generate label')
+    }
+  }
+
   const handleDownloadLabel = () => {
-    window.open(`/api/admin/shipments/${shipment._id}/label`, '_blank')
+    if (shipment.labelUrl && /^https?:\/\//i.test(shipment.labelUrl)) {
+      window.open(shipment.labelUrl, '_blank')
+    } else {
+      window.open(`/api/admin/shipments/${shipment._id}/label`, '_blank')
+    }
   }
 
   return (
@@ -107,11 +144,21 @@ export function ShipmentDetailModal({
           </div>
         )}
 
+        {/* Provider Error Alert if any */}
+        {(shipment.metadata?.labelError || shipment.metadata?.pickupError || shipment.metadata?.awbError || shipment.pickupStatus === 'FAILED') && (
+          <div style={{ padding: '10px 14px', background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '6px', fontSize: '12px', marginBottom: '16px', color: '#92400E' }}>
+            <strong>Fulfillment Notice:</strong>{' '}
+            {shipment.metadata?.pickupError || shipment.metadata?.labelError || shipment.metadata?.awbError || 'Shipment has pending fulfillment stages.'}
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '12px', marginBottom: '20px' }}>
           <div>
             <span style={{ color: '#827b72', display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>Carrier & Service</span>
             <strong style={{ fontSize: '13px' }}>{shipment.carrier || 'Standard Express'}</strong>
-            <span style={{ display: 'block', color: '#827b72', fontSize: '11px' }}>Method: {shipment.shippingMethod}</span>
+            <span style={{ display: 'block', color: '#827b72', fontSize: '11px' }}>
+              Provider: {shipment.provider} {shipment.metadata?.courierCompanyId ? `(ID: ${shipment.metadata.courierCompanyId})` : ''}
+            </span>
           </div>
           <div>
             <span style={{ color: '#827b72', display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>AWB / Tracking Number</span>
@@ -120,6 +167,17 @@ export function ShipmentDetailModal({
               <a href={shipment.trackingUrl} target="_blank" rel="noreferrer" style={{ display: 'block', color: '#8B5E34', fontSize: '11px', textDecoration: 'underline' }}>
                 Track Carrier Package →
               </a>
+            )}
+          </div>
+          <div>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>Shiprocket Order & Shipment ID</span>
+            <strong style={{ fontSize: '13px' }}>
+              {shipment.providerShipmentId || shipment.metadata?.shiprocketShipmentId || 'N/A'}
+            </strong>
+            {shipment.metadata?.shiprocketOrderId && (
+              <span style={{ display: 'block', color: '#827b72', fontSize: '11px' }}>
+                Order ID: {shipment.metadata.shiprocketOrderId}
+              </span>
             )}
           </div>
           <div>
@@ -135,6 +193,12 @@ export function ShipmentDetailModal({
               {shipment.packageInfo?.weight || 0.5} kg · {shipment.packageInfo?.length || 15}×{shipment.packageInfo?.width || 10}×{shipment.packageInfo?.height || 5} cm
             </strong>
             <span style={{ display: 'block', color: '#827b72', fontSize: '11px' }}>Est. Cost: {formatINR(shipment.shippingCost || 0)}</span>
+          </div>
+          <div>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>Fulfillment Stages Completed</span>
+            <span style={{ display: 'block', color: '#1E1A17', fontSize: '11px', fontWeight: 500, marginTop: '2px' }}>
+              {(shipment.metadata?.stagesCompleted || ['ORDER_CREATED']).join(' → ')}
+            </span>
           </div>
         </div>
 
@@ -180,6 +244,37 @@ export function ShipmentDetailModal({
               onClick={handleRetryPickup}
             >
               <Truck size={13} style={{ marginRight: '4px' }} /> {isRetryingPickup ? 'Requesting…' : 'Retry Carrier Pickup'}
+            </button>
+            {(!shipment.trackingNumber || shipment.trackingNumber.startsWith('TRK-')) && (
+              <button
+                type="button"
+                className="button secondary"
+                style={{ fontSize: '11px', padding: '6px 12px' }}
+                disabled={isAssigningAwb}
+                onClick={handleAssignAwb}
+              >
+                <Tag size={13} style={{ marginRight: '4px' }} /> {isAssigningAwb ? 'Assigning…' : 'Assign AWB'}
+              </button>
+            )}
+            {(!shipment.labelUrl || shipment.labelUrl.includes('/api/v1/vendors/orders/')) && (
+              <button
+                type="button"
+                className="button secondary"
+                style={{ fontSize: '11px', padding: '6px 12px' }}
+                disabled={isGeneratingLabel}
+                onClick={handleGenerateLabel}
+              >
+                <FileText size={13} style={{ marginRight: '4px' }} /> {isGeneratingLabel ? 'Generating…' : 'Generate Label'}
+              </button>
+            )}
+            <button
+              type="button"
+              className="button secondary"
+              style={{ fontSize: '11px', padding: '6px 12px' }}
+              disabled={isRetryingFulfillment}
+              onClick={handleRetryFulfillment}
+            >
+              <RefreshCw size={13} style={{ marginRight: '4px' }} className={isRetryingFulfillment ? 'animate-spin' : ''} /> {isRetryingFulfillment ? 'Fulfilling…' : 'Retry Fulfillment'}
             </button>
             <button
               type="button"

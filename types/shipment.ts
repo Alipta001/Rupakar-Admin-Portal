@@ -37,6 +37,7 @@ export interface Shipment {
   shippedAt?: string | null
   deliveredAt?: string | null
   labelUrl?: string | null
+  providerShipmentId?: string | null
   packageInfo?: {
     weight?: number
     length?: number
@@ -47,6 +48,7 @@ export interface Shipment {
   }
   pickupAddress?: Record<string, any>
   deliveryAddress?: Record<string, any>
+  metadata?: Record<string, any>
   createdAt: string
   updatedAt: string
 }

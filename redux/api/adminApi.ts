@@ -4,7 +4,7 @@ import axiosInstance from '@/api/axios/axios'
 import { ENDPOINTS } from '@/api/endPoints/endPoints'
 import { DashboardOverviewData } from '@/types/dashboard'
 import { User } from '@/types/user'
-import { Vendor, VendorBankAccount, VendorDocument } from '@/types/vendor'
+import { Vendor, VendorBankAccount, VendorDocument, VendorPickupLocation } from '@/types/vendor'
 import { Product } from '@/types/product'
 import { Category, Brand } from '@/types/category'
 import { Order } from '@/types/order'
@@ -27,11 +27,14 @@ export interface QueryParams {
   limit?: number
   search?: string
   status?: string
+  adminStatus?: string
+  registrationStatus?: string
   category?: string
   role?: string
   range?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
+  [key: string]: unknown
 }
 
 export interface PaginatedResult<T> {
@@ -253,6 +256,7 @@ export const adminApi = createApi({
     'Dashboard',
     'Users',
     'Vendors',
+    'PickupLocations',
     'Products',
     'Categories',
     'Brands',
@@ -454,6 +458,73 @@ export const adminApi = createApi({
       invalidatesTags: (_result, _error, { vendorId }) => [
         { type: 'Vendors', id: vendorId },
         { type: 'Vendors', id: `docs-${vendorId}` },
+        { type: 'Vendors', id: 'LIST' },
+      ],
+    }),
+
+    // Pickup Locations
+    getPickupLocations: builder.query<PaginatedResult<VendorPickupLocation>, QueryParams | void>({
+      query: (params) => ({
+        url: ENDPOINTS.VENDORS.PICKUP_LOCATIONS,
+        method: 'GET',
+        params: params || {},
+      }),
+      transformResponse: (response: unknown): PaginatedResult<VendorPickupLocation> =>
+        normalizePaginatedResult<VendorPickupLocation>(response),
+      providesTags: (result) => safeListTags('PickupLocations', result),
+    }),
+    getPickupLocationByVendorId: builder.query<VendorPickupLocation, string>({
+      query: (vendorId) => ({
+        url: ENDPOINTS.VENDORS.PICKUP_LOCATION_DETAIL(vendorId),
+        method: 'GET',
+      }),
+      providesTags: (_result, _error, vendorId) => [{ type: 'PickupLocations', id: vendorId }],
+    }),
+    approvePickupLocation: builder.mutation<VendorPickupLocation, { vendorId: string }>({
+      query: ({ vendorId }) => ({
+        url: ENDPOINTS.VENDORS.APPROVE_PICKUP_LOCATION(vendorId),
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, { vendorId }) => [
+        { type: 'PickupLocations', id: vendorId },
+        { type: 'PickupLocations', id: 'LIST' },
+        { type: 'Vendors', id: vendorId },
+        { type: 'Vendors', id: 'LIST' },
+      ],
+    }),
+    deactivatePickupLocation: builder.mutation<VendorPickupLocation, { vendorId: string }>({
+      query: ({ vendorId }) => ({
+        url: ENDPOINTS.VENDORS.DEACTIVATE_PICKUP_LOCATION(vendorId),
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, { vendorId }) => [
+        { type: 'PickupLocations', id: vendorId },
+        { type: 'PickupLocations', id: 'LIST' },
+        { type: 'Vendors', id: vendorId },
+        { type: 'Vendors', id: 'LIST' },
+      ],
+    }),
+    archivePickupLocation: builder.mutation<VendorPickupLocation, { vendorId: string }>({
+      query: ({ vendorId }) => ({
+        url: ENDPOINTS.VENDORS.ARCHIVE_PICKUP_LOCATION(vendorId),
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, { vendorId }) => [
+        { type: 'PickupLocations', id: vendorId },
+        { type: 'PickupLocations', id: 'LIST' },
+        { type: 'Vendors', id: vendorId },
+        { type: 'Vendors', id: 'LIST' },
+      ],
+    }),
+    reactivatePickupLocation: builder.mutation<VendorPickupLocation, { vendorId: string }>({
+      query: ({ vendorId }) => ({
+        url: ENDPOINTS.VENDORS.REACTIVATE_PICKUP_LOCATION(vendorId),
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, { vendorId }) => [
+        { type: 'PickupLocations', id: vendorId },
+        { type: 'PickupLocations', id: 'LIST' },
+        { type: 'Vendors', id: vendorId },
         { type: 'Vendors', id: 'LIST' },
       ],
     }),
@@ -688,6 +759,38 @@ export const adminApi = createApi({
         { type: 'Shipments' as any, id },
         { type: 'Shipments' as any, id: 'LIST' },
         { type: 'Orders', id: 'LIST' },
+      ],
+    }),
+    retryShipmentFulfillment: builder.mutation<Shipment, { id: string }>({
+      query: ({ id }) => ({
+        url: ENDPOINTS.SHIPMENTS.RETRY_FULFILLMENT(id),
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Shipments' as any, id },
+        { type: 'Shipments' as any, id: 'LIST' },
+        { type: 'Orders', id: 'LIST' },
+      ],
+    }),
+    assignShipmentAwb: builder.mutation<Shipment, { id: string; courierId?: number }>({
+      query: ({ id, courierId }) => ({
+        url: ENDPOINTS.SHIPMENTS.ASSIGN_AWB(id),
+        method: 'POST',
+        data: courierId ? { courierId } : {},
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Shipments' as any, id },
+        { type: 'Shipments' as any, id: 'LIST' },
+      ],
+    }),
+    generateShipmentLabel: builder.mutation<Shipment, { id: string }>({
+      query: ({ id }) => ({
+        url: ENDPOINTS.SHIPMENTS.GENERATE_LABEL(id),
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Shipments' as any, id },
+        { type: 'Shipments' as any, id: 'LIST' },
       ],
     }),
 
@@ -1151,6 +1254,12 @@ export const {
   useGetVendorDocumentsQuery,
   useApproveVendorDocumentMutation,
   useRejectVendorDocumentMutation,
+  useGetPickupLocationsQuery,
+  useGetPickupLocationByVendorIdQuery,
+  useApprovePickupLocationMutation,
+  useDeactivatePickupLocationMutation,
+  useArchivePickupLocationMutation,
+  useReactivatePickupLocationMutation,
   useGetProductsQuery,
   useGetProductByIdQuery,
   useApproveProductMutation,
@@ -1174,6 +1283,9 @@ export const {
   useUpdateShipmentStatusMutation,
   useRetryShipmentPickupMutation,
   useResyncShipmentTrackingMutation,
+  useRetryShipmentFulfillmentMutation,
+  useAssignShipmentAwbMutation,
+  useGenerateShipmentLabelMutation,
   useGetPaymentsQuery,
   useGetRefundsQuery,
   useGetInventoryQuery,

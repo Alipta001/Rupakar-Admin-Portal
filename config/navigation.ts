@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileText,
   LayoutDashboard,
+  MapPin,
   PackageCheck,
   Settings2,
   ShieldCheck,
@@ -58,6 +59,7 @@ export const navGroups: NavGroup[] = [
     label: 'Marketplace',
     items: [
       { label: 'Vendors', href: '/vendors', icon: Store },
+      { label: 'Pickup Locations', href: '/vendors/pickup-locations', icon: MapPin },
       { label: 'Customers', href: '/users', icon: Users },
       { label: 'Reviews', href: '/reviews', icon: ClipboardList },
       { label: 'Authenticity', href: '/authenticity', icon: ShieldCheck },

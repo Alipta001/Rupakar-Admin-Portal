@@ -59,4 +59,32 @@ export interface Vendor {
   rating?: number
   joinedDate?: string
   bankAccount?: VendorBankAccount | null
+  pickupAddress?: VendorPickupLocation | null
 }
+
+export type PickupRegistrationStatus = 'PENDING' | 'REGISTERED' | 'FAILED'
+export type PickupAdminStatus = 'PENDING' | 'APPROVED' | 'DEACTIVATED' | 'ARCHIVED'
+
+export interface VendorPickupLocation {
+  vendorId: string
+  businessName: string
+  sellerName?: string
+  sellerEmail?: string
+  sellerPhone?: string
+  pickupLocationName: string
+  contactPerson: string
+  phone: string
+  addressLine1: string
+  addressLine2?: string
+  city: string
+  state: string
+  pincode: string
+  country?: string
+  shiprocketPickupId?: string | null
+  registrationStatus: PickupRegistrationStatus
+  adminStatus: PickupAdminStatus
+  registeredAt?: string | null
+  registrationError?: string | null
+  updatedAt?: string
+}
+

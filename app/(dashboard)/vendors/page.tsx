@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { Filter, Store } from 'lucide-react'
+import Link from 'next/link'
+import { Filter, Store, MapPin } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { VendorTable } from '@/components/vendors/vendor-table'
 
@@ -14,9 +15,9 @@ export default function VendorsPage() {
         description="Oversee artisan onboarding, verification, and gross merchandise value."
         actions={
           <>
-            <button type="button" className="button secondary">
-              <Filter size={16} /> Filters
-            </button>
+            <Link href="/vendors/pickup-locations" className="button secondary">
+              <MapPin size={16} /> Pickup Locations
+            </Link>
             <button type="button" className="button primary">
               <Store size={16} /> Onboard vendor
             </button>

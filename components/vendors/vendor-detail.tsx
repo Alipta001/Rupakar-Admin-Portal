@@ -11,7 +11,14 @@ import {
   useGetVendorDocumentsQuery,
   useApproveVendorDocumentMutation,
   useRejectVendorDocumentMutation,
+  useGetPickupLocationByVendorIdQuery,
+  useApprovePickupLocationMutation,
+  useDeactivatePickupLocationMutation,
+  useArchivePickupLocationMutation,
+  useReactivatePickupLocationMutation,
 } from '@/redux/api/adminApi'
+import { ConfirmDialog } from '@/components/shared/confirm-dialog'
+import { MapPin, CheckCircle, XCircle, RefreshCw, Archive } from 'lucide-react'
 
 function BankVerificationBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; bg: string; color: string }> = {
@@ -422,6 +429,227 @@ function DocumentsSection({ vendorId }: { vendorId: string }) {
   )
 }
 
+function PickupAdminStatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; bg: string; color: string; border: string }> = {
+    APPROVED: { label: 'Approved', bg: '#e6f5ec', color: '#2d7a50', border: '#b8e2cb' },
+    PENDING: { label: 'Pending Approval', bg: '#fff8e5', color: '#9c7a00', border: '#f5e4b7' },
+    DEACTIVATED: { label: 'Deactivated', bg: '#fcecea', color: '#c0392b', border: '#f5c6cb' },
+    ARCHIVED: { label: 'Archived', bg: '#f0efee', color: '#6b6560', border: '#dedcd9' },
+  }
+  const s = map[status] ?? { label: status, bg: '#f0efee', color: '#6b6560', border: '#dedcd9' }
+  return (
+    <span
+      style={{
+        fontSize: '10px',
+        fontWeight: 600,
+        padding: '2px 8px',
+        borderRadius: '20px',
+        background: s.bg,
+        color: s.color,
+        border: `1px solid ${s.border}`,
+        letterSpacing: '0.02em',
+        display: 'inline-block',
+      }}
+    >
+      {s.label}
+    </span>
+  )
+}
+
+function PickupLocationSection({ vendorId }: { vendorId: string }) {
+  const { data: pickup, isLoading, refetch } = useGetPickupLocationByVendorIdQuery(vendorId)
+  const [approveLocation, { isLoading: approving }] = useApprovePickupLocationMutation()
+  const [deactivateLocation, { isLoading: deactivating }] = useDeactivatePickupLocationMutation()
+  const [archiveLocation, { isLoading: archiving }] = useArchivePickupLocationMutation()
+  const [reactivateLocation, { isLoading: reactivating }] = useReactivatePickupLocationMutation()
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    type: 'DEACTIVATE' | 'ARCHIVE' | null
+  }>({
+    isOpen: false,
+    type: null,
+  })
+
+  if (isLoading) {
+    return (
+      <div style={{ marginTop: '20px', padding: '12px', background: '#faf9f7', borderRadius: '8px', fontSize: '12px', color: '#827b72' }}>
+        Loading pickup location…
+      </div>
+    )
+  }
+
+  if (!pickup) {
+    return (
+      <div style={{ marginTop: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#4a433c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Pickup Location
+          </span>
+        </div>
+        <div style={{ fontSize: '12px', color: '#827b72', padding: '10px', background: '#faf9f7', borderRadius: '6px', textAlign: 'center' }}>
+          No pickup address configured by seller yet
+        </div>
+      </div>
+    )
+  }
+
+  const handleApprove = async () => {
+    try {
+      await approveLocation({ vendorId }).unwrap()
+      await refetch()
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Failed to approve pickup location')
+    }
+  }
+
+  const handleReactivate = async () => {
+    try {
+      await reactivateLocation({ vendorId }).unwrap()
+      await refetch()
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Failed to reactivate pickup location')
+    }
+  }
+
+  const handleConfirmAction = async () => {
+    const type = confirmDialog.type
+    setConfirmDialog({ isOpen: false, type: null })
+    try {
+      if (type === 'DEACTIVATE') {
+        await deactivateLocation({ vendorId }).unwrap()
+      } else if (type === 'ARCHIVE') {
+        await archiveLocation({ vendorId }).unwrap()
+      }
+      await refetch()
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Action failed')
+    }
+  }
+
+  return (
+    <div style={{ marginTop: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <MapPin size={14} style={{ color: '#8b5e34' }} />
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#4a433c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Pickup Location ({pickup.pickupLocationName})
+          </span>
+        </div>
+        <PickupAdminStatusBadge status={pickup.adminStatus} />
+      </div>
+
+      <div style={{ padding: '12px 14px', background: '#faf9f7', borderRadius: '8px', border: '1px solid #e5e0d8', fontSize: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <div>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Contact Person</span>
+            <strong>{pickup.contactPerson} ({pickup.phone})</strong>
+          </div>
+          <div>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Shiprocket Pickup ID</span>
+            <span style={{ fontFamily: 'monospace' }}>{pickup.shiprocketPickupId || 'Not assigned'}</span>
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <span style={{ color: '#827b72', display: 'block', fontSize: '10px' }}>Address</span>
+            <span>
+              {pickup.addressLine1}
+              {pickup.addressLine2 ? `, ${pickup.addressLine2}` : ''}, {pickup.city}, {pickup.state} — {pickup.pincode}
+            </span>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', justifyContent: 'flex-end', alignItems: 'center' }}>
+          {pickup.adminStatus === 'PENDING' && (
+            <button
+              type="button"
+              className="button primary"
+              style={{ fontSize: '11px', padding: '4px 10px', backgroundColor: '#2d7a50', color: '#fff', border: 'none' }}
+              disabled={approving}
+              onClick={handleApprove}
+            >
+              <CheckCircle size={13} style={{ marginRight: '4px' }} />
+              {approving ? 'Approving…' : 'Approve Location'}
+            </button>
+          )}
+
+          {pickup.adminStatus === 'DEACTIVATED' && (
+            <button
+              type="button"
+              className="button secondary"
+              style={{ fontSize: '11px', padding: '4px 10px', color: '#2d7a50', borderColor: '#b8e2cb' }}
+              disabled={reactivating}
+              onClick={handleReactivate}
+            >
+              <RefreshCw size={13} style={{ marginRight: '4px' }} />
+              {reactivating ? 'Reactivating…' : 'Reactivate Location'}
+            </button>
+          )}
+
+          {pickup.adminStatus === 'APPROVED' && (
+            <button
+              type="button"
+              className="button secondary"
+              style={{ fontSize: '11px', padding: '4px 10px', color: '#c0392b', borderColor: '#f5c6cb' }}
+              disabled={deactivating}
+              onClick={() => setConfirmDialog({ isOpen: true, type: 'DEACTIVATE' })}
+            >
+              <XCircle size={13} style={{ marginRight: '4px' }} />
+              Deactivate
+            </button>
+          )}
+
+          {pickup.adminStatus !== 'ARCHIVED' && (
+            <button
+              type="button"
+              className="button secondary"
+              style={{ fontSize: '11px', padding: '4px 8px', color: '#6b6560' }}
+              disabled={archiving}
+              onClick={() => setConfirmDialog({ isOpen: true, type: 'ARCHIVE' })}
+              title="Archive pickup location"
+            >
+              <Archive size={13} style={{ marginRight: '4px' }} />
+              Archive
+            </button>
+          )}
+
+          {pickup.adminStatus === 'ARCHIVED' && (
+            <span style={{ fontSize: '11px', color: '#9c958f', fontStyle: 'italic' }}>
+              Location permanently archived
+            </span>
+          )}
+        </div>
+      </div>
+
+      {confirmDialog.isOpen && confirmDialog.type === 'DEACTIVATE' && (
+        <ConfirmDialog
+          isOpen={true}
+          title="Deactivate Pickup Location"
+          description={`Are you sure you want to temporarily deactivate "${pickup.pickupLocationName}"? It cannot be used for new Ready-to-Ship shipments. Historical records and Shiprocket mappings will be safely preserved.`}
+          confirmText="Deactivate Location"
+          cancelText="Cancel"
+          tone="danger"
+          onConfirm={handleConfirmAction}
+          onCancel={() => setConfirmDialog({ isOpen: false, type: null })}
+        />
+      )}
+
+      {confirmDialog.isOpen && confirmDialog.type === 'ARCHIVE' && (
+        <ConfirmDialog
+          isOpen={true}
+          title="Archive Pickup Location"
+          description={`Are you sure you want to permanently archive "${pickup.pickupLocationName}"? This retired location cannot be used for future dispatches. All historical shipments and database records will be preserved.`}
+          confirmText="Archive Location"
+          cancelText="Cancel"
+          tone="danger"
+          onConfirm={handleConfirmAction}
+          onCancel={() => setConfirmDialog({ isOpen: false, type: null })}
+        />
+      )}
+    </div>
+  )
+}
+
 export function VendorDetailModal({
   vendor,
   isOpen,
@@ -506,6 +734,9 @@ export function VendorDetailModal({
 
         {/* Vendor documents section */}
         <DocumentsSection vendorId={vendor.id} />
+
+        {/* Pickup location section */}
+        <PickupLocationSection vendorId={vendor.id} />
 
         <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
           <button type="button" className="button secondary" onClick={onClose}>
