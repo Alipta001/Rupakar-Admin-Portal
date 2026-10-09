@@ -145,10 +145,13 @@ export function ShipmentDetailModal({
         )}
 
         {/* Provider Error Alert if any */}
-        {(shipment.metadata?.labelError || shipment.metadata?.pickupError || shipment.metadata?.awbError || shipment.pickupStatus === 'FAILED') && (
+        {(shipment.metadata?.awbError || shipment.metadata?.labelError || shipment.metadata?.pickupError || shipment.pickupStatus === 'FAILED' || (!shipment.trackingNumber || shipment.trackingNumber.startsWith('TRK-') || shipment.trackingNumber.startsWith('SR'))) && (
           <div style={{ padding: '10px 14px', background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '6px', fontSize: '12px', marginBottom: '16px', color: '#92400E' }}>
             <strong>Fulfillment Notice:</strong>{' '}
-            {shipment.metadata?.pickupError || shipment.metadata?.labelError || shipment.metadata?.awbError || 'Shipment has pending fulfillment stages.'}
+            {(() => {
+              const rawError = shipment.metadata?.awbError || shipment.metadata?.pickupError || shipment.metadata?.labelError || 'Shipment has pending fulfillment stages.';
+              return rawError;
+            })()}
           </div>
         )}
 
@@ -162,7 +165,11 @@ export function ShipmentDetailModal({
           </div>
           <div>
             <span style={{ color: '#827b72', display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>AWB / Tracking Number</span>
-            <strong style={{ fontSize: '13px' }}>{shipment.trackingNumber || 'Pending Assignment'}</strong>
+            <strong style={{ fontSize: '13px' }}>
+              {shipment.trackingNumber && !shipment.trackingNumber.startsWith('TRK-') && !shipment.trackingNumber.startsWith('SR')
+                ? shipment.trackingNumber
+                : 'Pending Assignment'}
+            </strong>
             {shipment.trackingUrl && (
               <a href={shipment.trackingUrl} target="_blank" rel="noreferrer" style={{ display: 'block', color: '#8B5E34', fontSize: '11px', textDecoration: 'underline' }}>
                 Track Carrier Package →
