@@ -83,6 +83,16 @@ export const ENDPOINTS = {
     APPROVE_RETURN: (id: string) => `/admin/returns/${id}/approve`,
     REJECT_RETURN: (id: string) => `/admin/returns/${id}/reject`,
   },
+  RETURNS: {
+    LIST: '/admin/returns',
+    DETAIL: (id: string) => `/admin/returns/${id}`,
+    DISPUTE_DECISION: (id: string) => `/admin/returns/${id}/dispute-decision`,
+    RESOLVE: (id: string) => `/admin/returns/${id}/resolve`,
+    REFUND: (id: string) => `/admin/returns/${id}/refund`,
+    COD_PAYOUT: (id: string) => `/admin/returns/${id}/cod-payout`,
+    REPLACEMENT: (id: string) => `/admin/returns/${id}/replacement`,
+    DISPOSITION: (id: string) => `/admin/returns/${id}/disposition`,
+  },
   INVENTORY: {
     LIST: '/admin/inventory',
   },

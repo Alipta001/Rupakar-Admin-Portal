@@ -21,6 +21,7 @@ import { AuditLog } from '@/types/audit'
 import { SupportTicket } from '@/types/support'
 import { PlatformSettings } from '@/types/settings'
 import { AdminUser } from '@/types/auth'
+import { AdminReturn } from '@/types/return'
 
 export interface QueryParams {
   page?: number
@@ -264,6 +265,7 @@ export const adminApi = createApi({
     'Shipments',
     'Payments',
     'Refunds',
+    'Returns',
     'Inventory',
     'Commissions',
     'Payouts',
@@ -818,6 +820,111 @@ export const adminApi = createApi({
       providesTags: (result) => safeListTags('Refunds', result),
     }),
 
+    // 9b. Returns (Phase 4 Admin Returns & Dispute Arbitration)
+    getAdminReturns: builder.query<PaginatedResult<AdminReturn>, QueryParams | void>({
+      query: (params) => ({
+        url: ENDPOINTS.RETURNS.LIST,
+        method: 'GET',
+        params: params || {},
+      }),
+      transformResponse: (response: unknown): PaginatedResult<AdminReturn> =>
+        normalizePaginatedResult<AdminReturn>(response),
+      providesTags: (result) => safeListTags('Returns', result),
+    }),
+    getAdminReturnById: builder.query<AdminReturn, string>({
+      query: (id) => ({
+        url: ENDPOINTS.RETURNS.DETAIL(id),
+        method: 'GET',
+      }),
+      providesTags: (_result, _error, id) => [{ type: 'Returns', id }],
+    }),
+    adminDisputeDecision: builder.mutation<
+      AdminReturn,
+      { id: string; decision: 'UPHOLD_CUSTOMER' | 'UPHOLD_SELLER' | 'REQUEST_MORE_INFO'; decisionReason: string; adminNotes?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: ENDPOINTS.RETURNS.DISPUTE_DECISION(id),
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Returns', id }, { type: 'Returns', id: 'LIST' }],
+    }),
+    adminResolveReturn: builder.mutation<
+      AdminReturn,
+      { id: string; resolution: 'RETURN_REFUND' | 'REPLACEMENT' | 'REJECT_RETURN'; notes?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: ENDPOINTS.RETURNS.RESOLVE(id),
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Returns', id }, { type: 'Returns', id: 'LIST' }, 'Orders'],
+    }),
+    adminExecuteReturnRefund: builder.mutation<
+      AdminReturn,
+      { id: string; notes?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: ENDPOINTS.RETURNS.REFUND(id),
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Returns', id }, { type: 'Returns', id: 'LIST' }, 'Orders', 'Payments'],
+    }),
+    adminHandleCodPayout: builder.mutation<
+      AdminReturn,
+      { id: string; action: 'INITIATE_PAYOUT' | 'COMPLETE_PAYOUT' | 'FAIL_PAYOUT'; reference?: string; notes?: string; failureReason?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: ENDPOINTS.RETURNS.COD_PAYOUT(id),
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Returns', id }, { type: 'Returns', id: 'LIST' }, 'Orders'],
+    }),
+    adminCreateReplacement: builder.mutation<
+      any,
+      { id: string; idempotencyKey?: string; notes?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: ENDPOINTS.RETURNS.REPLACEMENT(id),
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Returns', id },
+        { type: 'Returns', id: 'LIST' },
+        'Orders',
+        'Inventory',
+      ],
+    }),
+    adminSubmitReturnDisposition: builder.mutation<
+      AdminReturn,
+      {
+        id: string
+        items: Array<{
+          returnItemId: string
+          disposition: string
+          restockableQuantity: number
+          nonRestockableQuantity: number
+          reason?: string
+          notes?: string
+        }>
+        notes?: string
+      }
+    >({
+      query: ({ id, ...body }) => ({
+        url: ENDPOINTS.RETURNS.DISPOSITION(id),
+        method: 'POST',
+        data: body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Returns', id },
+        { type: 'Returns', id: 'LIST' },
+        'Inventory',
+      ],
+    }),
+
     // 10. Inventory
     getInventory: builder.query<PaginatedResult<InventoryItem>, QueryParams | void>({
       query: (params) => ({
@@ -1288,6 +1395,14 @@ export const {
   useGenerateShipmentLabelMutation,
   useGetPaymentsQuery,
   useGetRefundsQuery,
+  useGetAdminReturnsQuery,
+  useGetAdminReturnByIdQuery,
+  useAdminDisputeDecisionMutation,
+  useAdminResolveReturnMutation,
+  useAdminExecuteReturnRefundMutation,
+  useAdminHandleCodPayoutMutation,
+  useAdminCreateReplacementMutation,
+  useAdminSubmitReturnDispositionMutation,
   useGetInventoryQuery,
   useGetCommissionsQuery,
   useGetCommissionConfigsQuery,

@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   MapPin,
   PackageCheck,
+  RotateCcw,
   Settings2,
   ShieldCheck,
   ShoppingBag,
@@ -48,6 +49,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: 'Orders', href: '/orders', icon: ShoppingBag },
       { label: 'Shipments', href: '/shipments', icon: Truck },
+      { label: 'Returns', href: '/returns', icon: RotateCcw },
       { label: 'Products', href: '/products', icon: Box },
       { label: 'Inventory', href: '/inventory', icon: PackageCheck },
       { label: 'Categories', href: '/categories', icon: Tag },
@@ -89,5 +91,6 @@ export const navGroups: NavGroup[] = [
 
 export const isKnownRoute = (pathname: string): boolean => {
   if (pathname === '/' || pathname === '/dashboard') return true
+  if (pathname.startsWith('/returns')) return true
   return navGroups.some(group => group.items.some(item => item.href === pathname))
 }
