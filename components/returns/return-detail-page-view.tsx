@@ -1,6 +1,6 @@
 'use client'
 
-import React, { use } from 'react'
+import React, { Suspense } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
@@ -15,28 +15,16 @@ export interface AdminReturnDetailPageViewProps {
   params?: Promise<{ id?: string }> | { id?: string }
 }
 
-export function AdminReturnDetailPageView({ params }: AdminReturnDetailPageViewProps) {
+function AdminReturnDetailPageViewContent({ params }: AdminReturnDetailPageViewProps) {
   const router = useRouter()
   const routeParams = useParams<{ id?: string }>()
   const searchParams = useSearchParams()
 
-  let resolvedId = ''
+  // Standard Next.js/React 19 safe route params resolution
+  let resolvedId = routeParams?.id || ''
 
-  if (params) {
-    if (typeof (params as any)?.then === 'function') {
-      try {
-        const unwrapped = use(params as Promise<{ id?: string }>)
-        resolvedId = unwrapped?.id || ''
-      } catch {
-        // Fallback to useParams
-      }
-    } else {
-      resolvedId = (params as { id?: string })?.id || ''
-    }
-  }
-
-  if (!resolvedId) {
-    resolvedId = routeParams?.id || ''
+  if (!resolvedId && params && typeof (params as any)?.then !== 'function') {
+    resolvedId = (params as { id?: string })?.id || ''
   }
 
   // Handle queries like /returns/return_refund?id=... or /returns/return_refund?returnId=...
@@ -179,5 +167,24 @@ export function AdminReturnDetailPageView({ params }: AdminReturnDetailPageViewP
         onSuccess={() => refetch()}
       />
     </div>
+  )
+}
+
+export function AdminReturnDetailPageView(props: AdminReturnDetailPageViewProps) {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '32px 16px' }}>
+          <PageHeader
+            eyebrow="Commerce / Returns"
+            title="Return Resolution & Refund"
+            description="Authoritative marketplace return audit and refund execution."
+          />
+          <LoadingState message="Loading return details from Rupakar backend..." />
+        </div>
+      }
+    >
+      <AdminReturnDetailPageViewContent {...props} />
+    </Suspense>
   )
 }

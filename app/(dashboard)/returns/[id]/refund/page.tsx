@@ -1,7 +1,13 @@
 'use client'
 
+import React, { Suspense } from 'react'
 import { AdminReturnDetailPageView, AdminReturnDetailPageViewProps } from '@/components/returns/return-detail-page-view'
+import { LoadingState } from '@/components/shared/loading-state'
 
 export default function AdminReturnRefundSubroute(props: AdminReturnDetailPageViewProps) {
-  return <AdminReturnDetailPageView {...props} />
+  return (
+    <Suspense fallback={<LoadingState message="Loading return details..." />}>
+      <AdminReturnDetailPageView {...props} />
+    </Suspense>
+  )
 }

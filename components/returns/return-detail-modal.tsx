@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   AlertTriangle,
   Banknote,
@@ -31,18 +31,29 @@ import {
 export interface ReturnDetailModalProps {
   returnData: AdminReturn | null
   isOpen?: boolean
-  onClose?: () => void
+  onClose: () => void
   onSuccess?: () => void
   isPage?: boolean
 }
 
 export function ReturnDetailModal({
-  returnData,
+  returnData: propReturnData,
   isOpen = true,
   onClose,
   onSuccess,
   isPage = false,
 }: ReturnDetailModalProps) {
+  const [internalReturn, setInternalReturn] = useState<AdminReturn | null>(null)
+
+  useEffect(() => {
+    setInternalReturn(null)
+  }, [propReturnData?._id, propReturnData?.id])
+
+  const returnData: AdminReturn | null =
+    internalReturn && (internalReturn._id === propReturnData?._id || internalReturn.id === propReturnData?.id)
+      ? { ...propReturnData, ...internalReturn }
+      : propReturnData
+
   const [disputeDecision, setDisputeDecision] = useState<'UPHOLD_CUSTOMER' | 'UPHOLD_SELLER' | 'REQUEST_MORE_INFO'>('UPHOLD_CUSTOMER')
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeAdminNotes, setDisputeAdminNotes] = useState('')
@@ -115,13 +126,16 @@ export function ReturnDetailModal({
     setResolutionError(null)
 
     try {
-      await submitResolution({
+      const resolved = await submitResolution({
         id: returnData._id,
         resolution: resolutionAction,
         notes: resolutionNotes.trim() || undefined,
       }).unwrap()
 
       setResolutionNotes('')
+      if (resolved && typeof resolved === 'object') {
+        setInternalReturn(resolved as AdminReturn)
+      }
       if (onSuccess) onSuccess()
     } catch (err: any) {
       setResolutionError(err?.message || err?.data?.message || 'Failed to submit return resolution.')

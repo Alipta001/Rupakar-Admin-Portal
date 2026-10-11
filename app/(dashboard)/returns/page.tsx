@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import Link from 'next/link'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -168,18 +167,17 @@ export default function AdminReturnsPage() {
           r.status === 'REFUND_FAILED' ||
           r.status === 'MANUAL_PAYOUT_PENDING' ||
           r.resolution?.action === 'RETURN_REFUND'
-        const returnId = r._id || r.id
 
         return (
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <Link
-              href={`/returns/${returnId}`}
+            <button
+              type="button"
+              onClick={() => handleRowClick(r)}
               data-action={isRefundReady ? 'return_refund' : isReadyToResolve ? 'resolve' : isDisputed ? 'arbitrate' : 'view'}
               className={`button ${isDisputed ? 'primary' : isRefundReady ? 'primary' : 'secondary'}`}
               style={{
                 padding: '6px 10px',
                 fontSize: '10px',
-                textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -187,7 +185,7 @@ export default function AdminReturnsPage() {
               }}
             >
               {isDisputed ? 'Arbitrate' : isRefundReady ? 'Refund' : isReadyToResolve ? 'Resolve' : 'View'}
-            </Link>
+            </button>
             <button
               type="button"
               onClick={() => handleRowClick(r)}
@@ -291,16 +289,37 @@ export default function AdminReturnsPage() {
 
       {/* Detail & Arbitration Modal */}
       <ReturnDetailModal
-        returnData={selectedReturn}
+        returnData={
+          selectedReturn
+            ? returnsList.find((r) => (r._id || r.id) === (selectedReturn._id || selectedReturn.id)) || selectedReturn
+            : null
+        }
         isOpen={isDetailModalOpen}
         onClose={() => {
           setIsDetailModalOpen(false)
           setSelectedReturn(null)
         }}
-        onSuccess={() => {
-          refetch()
-          setIsDetailModalOpen(false)
-          setSelectedReturn(null)
+        onSuccess={async () => {
+          const res = await refetch()
+          const raw = res?.data
+          if (raw && selectedReturn) {
+            const list = Array.isArray((raw as any)?.items)
+              ? (raw as any).items
+              : Array.isArray((raw as any)?.data)
+              ? (raw as any).data
+              : Array.isArray(raw)
+              ? raw
+              : []
+            const targetId = selectedReturn._id || selectedReturn.id
+            const updated = list.find((r: any) => (r._id || r.id) === targetId)
+            if (updated) {
+              setSelectedReturn({
+                ...updated,
+                _id: updated._id || updated.id,
+                id: updated.id || updated._id,
+              })
+            }
+          }
         }}
       />
     </>
