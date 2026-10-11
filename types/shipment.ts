@@ -18,10 +18,14 @@ export type ShipmentStatus =
 
 export interface Shipment {
   _id: string
+  id?: string
   orderId: string
+  orderNumber?: string
   vendorOrderId: string
   vendorId: string
+  vendorName?: string
   customerId: string
+  service?: string
   shipmentNumber: string
   carrier: string
   provider: string

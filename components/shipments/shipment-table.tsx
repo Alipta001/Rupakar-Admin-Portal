@@ -267,13 +267,14 @@ export function ShipmentTable() {
       <DataTable
         columns={columns}
         data={filteredShipments}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id || item.id || ''}
         emptyMessage="No shipments found matching the criteria."
       />
 
       {selectedShipment && (
         <ShipmentDetailModal
           shipment={selectedShipment}
+          isOpen={!!selectedShipment}
           onClose={() => setSelectedShipment(null)}
           onSuccess={() => {
             refetch()

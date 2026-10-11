@@ -28,18 +28,20 @@ import {
   useAdminSubmitReturnDispositionMutation,
 } from '@/redux/api/adminApi'
 
-interface ReturnDetailModalProps {
+export interface ReturnDetailModalProps {
   returnData: AdminReturn | null
-  isOpen: boolean
-  onClose: () => void
+  isOpen?: boolean
+  onClose?: () => void
   onSuccess?: () => void
+  isPage?: boolean
 }
 
 export function ReturnDetailModal({
   returnData,
-  isOpen,
+  isOpen = true,
   onClose,
   onSuccess,
+  isPage = false,
 }: ReturnDetailModalProps) {
   const [disputeDecision, setDisputeDecision] = useState<'UPHOLD_CUSTOMER' | 'UPHOLD_SELLER' | 'REQUEST_MORE_INFO'>('UPHOLD_CUSTOMER')
   const [disputeReason, setDisputeReason] = useState('')
@@ -75,13 +77,13 @@ export function ReturnDetailModal({
   const [createReplacementOrder, { isLoading: isCreatingReplacement }] = useAdminCreateReplacementMutation()
   const [submitDisposition, { isLoading: isSubmittingDisposition }] = useAdminSubmitReturnDispositionMutation()
 
-  if (!isOpen || !returnData) return null
+  if (!returnData || (!isPage && !isOpen)) return null
 
   const isDisputed = returnData.status === 'DISPUTED'
   const isEligibleForResolution =
     returnData.status === 'INSPECTION_PASSED' ||
     returnData.status === 'APPROVED' ||
-    (returnData.dispute && returnData.dispute.status === 'UPHELD_CUSTOMER')
+    (returnData.dispute && (returnData.dispute.decision === 'UPHOLD_CUSTOMER' || returnData.dispute.status === 'UPHELD_CUSTOMER'))
 
   const handleDisputeSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -246,51 +248,43 @@ export function ReturnDetailModal({
       'MANUAL_PAYOUT_PROCESSING',
     ].includes(returnData.status) || returnData.resolution?.action === 'RETURN_REFUND'
 
-  return (
+  const content = (
     <div
+      className="panel"
       style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        background: 'rgba(39, 35, 31, 0.55)',
-        backdropFilter: 'blur(3px)',
-        display: 'grid',
-        placeItems: 'center',
-        padding: '20px',
+        width: '100%',
+        maxWidth: isPage ? '100%' : '820px',
+        maxHeight: isPage ? 'none' : '90vh',
+        overflowY: isPage ? 'visible' : 'auto',
+        padding: '28px',
+        position: 'relative',
+        boxShadow: isPage ? 'none' : undefined,
+        border: isPage ? '1px solid #e9e5df' : undefined,
       }}
-      onClick={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
-      <div
-        className="panel"
-        style={{
-          width: '100%',
-          maxWidth: '820px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          padding: '28px',
-          position: 'relative',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>Return {returnData.returnNumber}</h2>
-              <ReturnStatusBadge status={returnData.status} />
-            </div>
-            <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#827b72' }}>
-              Order: <strong>{returnData.order?.orderNumber || returnData.orderId}</strong> • Placed on {returnData.order?.createdAt ? formatDateTime(returnData.order.createdAt) : '—'}
-            </p>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>Return {returnData.returnNumber}</h2>
+            <ReturnStatusBadge status={returnData.status} />
           </div>
+          <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#827b72' }}>
+            Order: <strong>{returnData.order?.orderNumber || returnData.orderId}</strong> • Placed on {returnData.order?.createdAt ? formatDateTime(returnData.order.createdAt) : '—'}
+          </p>
+        </div>
+        {!isPage && onClose && (
           <button
             type="button"
             onClick={onClose}
             style={{ border: 0, background: 'none', color: '#827b72', cursor: 'pointer', padding: '4px' }}
+            aria-label="Close modal"
           >
             <X size={20} />
           </button>
-        </div>
+        )}
+      </div>
 
         {/* 2-Column Parties Info */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
@@ -391,7 +385,7 @@ export function ReturnDetailModal({
             <div style={{ background: '#fff', border: '1px solid #e9e5df', borderRadius: '6px', padding: '10px' }}>
               <span style={{ display: 'block', fontSize: '10px', color: '#827b72' }}>Item Subtotal</span>
               <strong style={{ fontSize: '13px', color: '#332e29' }}>
-                {formatINR(calc?.breakdown?.itemSubtotal ?? returnData.items.reduce((s, i) => s + (i.lineTotal || 0), 0))}
+                {formatINR(calc?.breakdown?.itemSubtotal ?? (returnData.items || []).reduce((s, i) => s + (i.lineTotal || 0), 0))}
               </strong>
             </div>
 
@@ -423,7 +417,7 @@ export function ReturnDetailModal({
         </div>
 
         {/* Seller Inspection Details */}
-        {returnData.inspection && (
+        {returnData.inspection && returnData.inspection.result && (
           <div style={{ background: '#fcfbf9', border: '1px solid #e9e5df', borderRadius: '8px', padding: '14px', marginBottom: '20px' }}>
             <h4 style={{ margin: '0 0 8px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
               {returnData.inspection.result === 'PASSED' ? (
@@ -440,7 +434,7 @@ export function ReturnDetailModal({
         )}
 
         {/* Phase 10: Inventory Disposition & Restock Outcome */}
-        {returnData.disposition && (
+        {returnData.disposition && returnData.disposition.status && (
           <div style={{ background: '#f5faf6', border: '1px solid #d4edd9', borderRadius: '8px', padding: '14px', marginBottom: '20px' }}>
             <h4 style={{ margin: '0 0 8px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#276738' }}>
               <CheckCircle2 size={16} color="#276738" />
@@ -537,7 +531,7 @@ export function ReturnDetailModal({
           )}
 
         {/* Seller Dispute Information */}
-        {returnData.dispute && (
+        {returnData.dispute && (returnData.status === 'DISPUTED' || returnData.dispute.reason || returnData.dispute.decision) && (
           <div style={{ background: '#fdf9f7', border: '1px solid #ecd8d1', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#a45138', marginBottom: '8px' }}>
               <ShieldAlert size={16} />
@@ -965,7 +959,7 @@ export function ReturnDetailModal({
                   <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a443e', marginBottom: '6px' }}>
                     Customer Payout Destination
                   </span>
-                  {returnData.payoutDetails ? (
+                  {returnData.payoutDetails && returnData.payoutDetails.method ? (
                     <div style={{ fontSize: '11px', color: '#332e29', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                       <div>
                         <span style={{ color: '#827b72', fontSize: '10px', display: 'block' }}>Method</span>
@@ -1367,6 +1361,27 @@ export function ReturnDetailModal({
           </div>
         </div>
       </div>
+  )
+
+  if (isPage) {
+    return content
+  }
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        background: 'rgba(39, 35, 31, 0.55)',
+        backdropFilter: 'blur(3px)',
+        display: 'grid',
+        placeItems: 'center',
+        padding: '20px',
+      }}
+      onClick={onClose}
+    >
+      {content}
     </div>
   )
 }

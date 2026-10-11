@@ -158,6 +158,7 @@ export interface AdminReturn {
   reviewedAt?: string
   reviewedBy?: string
   approvedAt?: string
+  approvedBy?: string
   rejectedAt?: string
   receivedAt?: string
   receivedBy?: string

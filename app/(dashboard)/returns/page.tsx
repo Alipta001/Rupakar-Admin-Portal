@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -161,15 +162,42 @@ export default function AdminReturnsPage() {
       cell: (r) => {
         const isDisputed = r.status === 'DISPUTED'
         const isReadyToResolve = r.status === 'INSPECTION_PASSED'
+        const isRefundReady =
+          r.status === 'APPROVED_FOR_REFUND' ||
+          r.status === 'REFUND_PENDING' ||
+          r.status === 'REFUND_FAILED' ||
+          r.status === 'MANUAL_PAYOUT_PENDING' ||
+          r.resolution?.action === 'RETURN_REFUND'
+        const returnId = r._id || r.id
+
         return (
-          <button
-            type="button"
-            onClick={() => handleRowClick(r)}
-            className={`button ${isDisputed ? 'primary' : 'secondary'}`}
-            style={{ padding: '6px 10px', fontSize: '10px' }}
-          >
-            {isDisputed ? 'Arbitrate' : isReadyToResolve ? 'Resolve' : 'View'}
-          </button>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <Link
+              href={`/returns/${returnId}`}
+              data-action={isRefundReady ? 'return_refund' : isReadyToResolve ? 'resolve' : isDisputed ? 'arbitrate' : 'view'}
+              className={`button ${isDisputed ? 'primary' : isRefundReady ? 'primary' : 'secondary'}`}
+              style={{
+                padding: '6px 10px',
+                fontSize: '10px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                ...(isRefundReady ? { background: '#2d6540', borderColor: '#2d6540', color: '#fff' } : {})
+              }}
+            >
+              {isDisputed ? 'Arbitrate' : isRefundReady ? 'Refund' : isReadyToResolve ? 'Resolve' : 'View'}
+            </Link>
+            <button
+              type="button"
+              onClick={() => handleRowClick(r)}
+              className="button secondary"
+              style={{ padding: '6px 8px', fontSize: '10px' }}
+              title="Quick preview in modal"
+            >
+              Quick View
+            </button>
+          </div>
         )
       },
     },

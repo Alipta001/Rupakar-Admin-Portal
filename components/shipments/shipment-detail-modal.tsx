@@ -18,10 +18,12 @@ export function ShipmentDetailModal({
   shipment,
   isOpen,
   onClose,
+  onSuccess,
 }: {
   shipment: Shipment | null
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
 }) {
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [statusReason, setStatusReason] = useState<string>('')
