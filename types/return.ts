@@ -2,6 +2,9 @@ export type ReturnStatus =
   | 'REQUESTED'
   | 'UNDER_REVIEW'
   | 'APPROVED'
+  | 'PICKUP_SCHEDULED'
+  | 'PICKED_UP'
+  | 'IN_TRANSIT'
   | 'RETURN_RECEIVED'
   | 'INSPECTION_PENDING'
   | 'INSPECTION_PASSED'
@@ -259,6 +262,43 @@ export interface AdminReturn {
     approvedAt?: string
     completedAt?: string
   } | null
+  reverseShipment?: AdminReverseShipment | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface AdminReverseShipment {
+  _id: string
+  shipmentNumber?: string
+  returnId?: string
+  orderId?: string
+  vendorOrderId?: string | null
+  vendorId?: string
+  status: string
+  provider?: string
+  carrier?: string
+  trackingNumber?: string | null
+  carrierOrderId?: string | null
+  carrierShipmentId?: string | null
+  pickupAddress?: Record<string, any>
+  destinationAddress?: Record<string, any>
+  packageInfo?: {
+    weight?: number
+    dimensions?: { length?: number; width?: number; height?: number }
+  }
+  scheduledPickupDate?: string | null
+  actualPickupDate?: string | null
+  deliveredAt?: string | null
+  labelUrl?: string | null
+  manifestUrl?: string | null
+  trackingUrl?: string | null
+  trackingHistory?: Array<{
+    status?: string
+    activity?: string
+    location?: string
+    timestamp?: string
+  }>
+  metadata?: Record<string, any>
   createdAt?: string
   updatedAt?: string
 }

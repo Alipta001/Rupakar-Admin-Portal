@@ -12,6 +12,7 @@ import {
   Package,
   ShieldAlert,
   Store,
+  Truck,
   User,
   X,
   XCircle,
@@ -1379,6 +1380,215 @@ export function ReturnDetailModal({
                 >
                   {isCreatingReplacement ? 'Creating Order...' : 'Generate Replacement Order'}
                 </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Phase 8: Reverse Shipment & Courier Logistics */}
+        {returnData.reverseShipment && (
+          <div
+            style={{
+              background: '#fbf8f3',
+              border: '1px solid #e8ddcf',
+              borderRadius: '8px',
+              padding: '16px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '12px',
+                borderBottom: '1px solid #ebdccb',
+                paddingBottom: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Truck size={16} color="#92400e" />
+                <h3 style={{ fontSize: '12px', fontWeight: 600, margin: 0, color: '#78350f' }}>
+                  Reverse Logistics &amp; Carrier Shipment
+                </h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
+                  }}
+                >
+                  {returnData.reverseShipment.status?.replaceAll('_', ' ')}
+                </span>
+                {returnData.reverseShipment.provider && (
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: '#f1f5f9',
+                      color: '#475569',
+                    }}
+                  >
+                    {returnData.reverseShipment.provider}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Carrier Error Alert */}
+            {Boolean(returnData.reverseShipment.metadata?.awbError || returnData.reverseShipment.metadata?.pickupError) && (
+              <div
+                style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '6px',
+                  padding: '10px',
+                  marginBottom: '12px',
+                  fontSize: '11px',
+                  color: '#991b1b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <AlertTriangle size={14} color="#dc2626" />
+                <span>
+                  <strong>Carrier Dispatch Notice:</strong>{' '}
+                  {String(returnData.reverseShipment.metadata?.awbError || returnData.reverseShipment.metadata?.pickupError)}
+                </span>
+              </div>
+            )}
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '10px',
+                fontSize: '11px',
+              }}
+            >
+              <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #ebdccb' }}>
+                <span style={{ fontSize: '10px', color: '#827b72', display: 'block' }}>Carrier</span>
+                <strong style={{ color: '#27231f' }}>{returnData.reverseShipment.carrier || 'Pending Assignment'}</strong>
+              </div>
+
+              <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #ebdccb' }}>
+                <span style={{ fontSize: '10px', color: '#827b72', display: 'block' }}>Tracking # / AWB</span>
+                <strong style={{ color: returnData.reverseShipment.trackingNumber ? '#b45309' : '#827b72', fontFamily: 'monospace' }}>
+                  {returnData.reverseShipment.trackingNumber || 'Pending AWB'}
+                </strong>
+                {returnData.reverseShipment.trackingUrl && (
+                  <a
+                    href={returnData.reverseShipment.trackingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#2563eb', fontSize: '10px', marginLeft: '6px' }}
+                  >
+                    Track <ExternalLink size={10} />
+                  </a>
+                )}
+              </div>
+
+              <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #ebdccb' }}>
+                <span style={{ fontSize: '10px', color: '#827b72', display: 'block' }}>Shipment Number</span>
+                <strong style={{ color: '#27231f', fontFamily: 'monospace' }}>
+                  {returnData.reverseShipment.shipmentNumber || returnData.reverseShipment._id}
+                </strong>
+              </div>
+
+              <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #ebdccb' }}>
+                <span style={{ fontSize: '10px', color: '#827b72', display: 'block' }}>Scheduled Pickup</span>
+                <span style={{ color: '#27231f' }}>
+                  {returnData.reverseShipment.scheduledPickupDate
+                    ? formatDateTime(returnData.reverseShipment.scheduledPickupDate)
+                    : 'Awaiting Carrier Schedule'}
+                </span>
+              </div>
+            </div>
+
+            {/* Carrier Order & Shipment IDs */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '12px',
+                marginTop: '10px',
+                paddingTop: '8px',
+                borderTop: '1px dashed #ebdccb',
+                fontSize: '11px',
+                color: '#64748b',
+              }}
+            >
+              {returnData.reverseShipment.carrierOrderId && (
+                <span>Carrier Order ID: <strong style={{ color: '#334155', fontFamily: 'monospace' }}>{returnData.reverseShipment.carrierOrderId}</strong></span>
+              )}
+              {returnData.reverseShipment.carrierShipmentId && (
+                <span>Carrier Shipment ID: <strong style={{ color: '#334155', fontFamily: 'monospace' }}>{returnData.reverseShipment.carrierShipmentId}</strong></span>
+              )}
+              {Boolean(returnData.reverseShipment.packageInfo?.weight) && (
+                <span>Weight: <strong style={{ color: '#334155' }}>{returnData.reverseShipment.packageInfo?.weight} kg</strong></span>
+              )}
+              {returnData.reverseShipment.packageInfo?.dimensions && (
+                <span>
+                  Dimensions:{' '}
+                  <strong style={{ color: '#334155' }}>
+                    {returnData.reverseShipment.packageInfo.dimensions.length}×{returnData.reverseShipment.packageInfo.dimensions.width}×{returnData.reverseShipment.packageInfo.dimensions.height} cm
+                  </strong>
+                </span>
+              )}
+            </div>
+
+            {/* Action Links */}
+            {(returnData.reverseShipment.labelUrl || returnData.reverseShipment.manifestUrl) && (
+              <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                {returnData.reverseShipment.labelUrl && (
+                  <a
+                    href={returnData.reverseShipment.labelUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      border: '1px solid #d1d5db',
+                      background: '#fff',
+                      fontSize: '11px',
+                      color: '#374151',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    View Shipping Label <ExternalLink size={10} />
+                  </a>
+                )}
+                {returnData.reverseShipment.manifestUrl && (
+                  <a
+                    href={returnData.reverseShipment.manifestUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      border: '1px solid #d1d5db',
+                      background: '#fff',
+                      fontSize: '11px',
+                      color: '#374151',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    View Manifest <ExternalLink size={10} />
+                  </a>
+                )}
               </div>
             )}
           </div>
