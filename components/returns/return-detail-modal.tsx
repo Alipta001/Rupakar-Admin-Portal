@@ -32,7 +32,7 @@ export interface ReturnDetailModalProps {
   returnData: AdminReturn | null
   isOpen?: boolean
   onClose: () => void
-  onSuccess?: () => void
+  onSuccess?: (updatedReturn?: AdminReturn | null) => void
   isPage?: boolean
 }
 
@@ -96,8 +96,11 @@ export function ReturnDetailModal({
     returnData.status === 'APPROVED' ||
     (returnData.dispute && (returnData.dispute.decision === 'UPHOLD_CUSTOMER' || returnData.dispute.status === 'UPHELD_CUSTOMER'))
 
-  const handleDisputeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleDisputeSubmit = async (e?: React.FormEvent | React.SyntheticEvent) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault()
+    }
+    if (isSubmittingDispute) return
     setDisputeError(null)
 
     if (!disputeReason.trim()) {
@@ -106,7 +109,7 @@ export function ReturnDetailModal({
     }
 
     try {
-      await submitDispute({
+      const disputed = await submitDispute({
         id: returnData._id,
         decision: disputeDecision,
         decisionReason: disputeReason.trim(),
@@ -115,14 +118,21 @@ export function ReturnDetailModal({
 
       setDisputeReason('')
       setDisputeAdminNotes('')
-      if (onSuccess) onSuccess()
+      const updatedDoc = disputed && typeof disputed === 'object' ? (disputed as AdminReturn) : null
+      if (updatedDoc) {
+        setInternalReturn(updatedDoc)
+      }
+      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setDisputeError(err?.message || err?.data?.message || 'Failed to submit dispute decision.')
     }
   }
 
-  const handleResolutionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleResolutionSubmit = async (e?: React.FormEvent | React.SyntheticEvent) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault()
+    }
+    if (isSubmittingResolution) return
     setResolutionError(null)
 
     try {
@@ -133,17 +143,21 @@ export function ReturnDetailModal({
       }).unwrap()
 
       setResolutionNotes('')
-      if (resolved && typeof resolved === 'object') {
-        setInternalReturn(resolved as AdminReturn)
+      const updatedDoc = resolved && typeof resolved === 'object' ? (resolved as AdminReturn) : null
+      if (updatedDoc) {
+        setInternalReturn(updatedDoc)
       }
-      if (onSuccess) onSuccess()
+      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setResolutionError(err?.message || err?.data?.message || 'Failed to submit return resolution.')
     }
   }
 
-  const handleDispositionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleDispositionSubmit = async (e?: React.FormEvent | React.SyntheticEvent) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault()
+    }
+    if (isSubmittingDisposition) return
     setDispositionError(null)
     setDispositionSuccess(null)
 
@@ -157,55 +171,74 @@ export function ReturnDetailModal({
     }))
 
     try {
-      await submitDisposition({
+      const updated = await submitDisposition({
         id: returnData._id,
         items,
         notes: dispositionNotes.trim() || undefined,
       }).unwrap()
 
       setDispositionSuccess('Inventory disposition committed successfully. Restockable items incremented in inventory.')
-      if (onSuccess) onSuccess()
+      const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
+      if (updatedDoc) {
+        setInternalReturn(updatedDoc)
+      }
+      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setDispositionError(err?.message || err?.data?.message || 'Failed to submit inventory disposition.')
     }
   }
 
-  const handleExecutePrepaidRefund = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleExecutePrepaidRefund = async (e?: React.FormEvent | React.SyntheticEvent) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault()
+    }
+    if (isExecutingRefund) return
     setRefundError(null)
     setRefundSuccess(null)
     try {
-      await executeRefund({
+      const updated = await executeRefund({
         id: returnData._id,
         notes: refundNotes.trim() || undefined,
       }).unwrap()
       setRefundSuccess('Prepaid refund successfully initiated with Razorpay.')
       setRefundNotes('')
-      if (onSuccess) onSuccess()
+      const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
+      if (updatedDoc) {
+        setInternalReturn(updatedDoc)
+      }
+      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setRefundError(err?.message || err?.data?.message || 'Failed to execute prepaid refund.')
     }
   }
 
   const handleInitiateCodPayout = async () => {
+    if (isHandlingCodPayout) return
     setCodError(null)
     setCodSuccess(null)
     try {
-      await handleCodPayout({
+      const updated = await handleCodPayout({
         id: returnData._id,
         action: 'INITIATE_PAYOUT',
         notes: codNotes.trim() || undefined,
       }).unwrap()
       setCodSuccess('COD payout marked as processing.')
       setCodNotes('')
-      if (onSuccess) onSuccess()
+      const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
+      if (updatedDoc) {
+        setInternalReturn(updatedDoc)
+      }
+      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setCodError(err?.message || err?.data?.message || 'Failed to initiate COD payout.')
     }
   }
 
-  const handleCompleteCodPayout = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCompleteCodPayout = async (e?: React.FormEvent | React.SyntheticEvent) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault()
+    }
+    if (isHandlingCodPayout) return
     setCodError(null)
     setCodSuccess(null)
     if (!codReference.trim()) {
@@ -213,7 +246,7 @@ export function ReturnDetailModal({
       return
     }
     try {
-      await handleCodPayout({
+      const updated = await handleCodPayout({
         id: returnData._id,
         action: 'COMPLETE_PAYOUT',
         reference: codReference.trim(),
@@ -221,13 +254,18 @@ export function ReturnDetailModal({
       }).unwrap()
       setCodSuccess('COD payout successfully recorded as completed.')
       setCodReference('')
-      if (onSuccess) onSuccess()
+      const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
+      if (updatedDoc) {
+        setInternalReturn(updatedDoc)
+      }
+      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setCodError(err?.message || err?.data?.message || 'Failed to record COD payout.')
     }
   }
 
   const handleFailCodPayout = async () => {
+    if (isHandlingCodPayout) return
     setCodError(null)
     setCodSuccess(null)
     if (!codFailureReason.trim()) {
@@ -235,14 +273,18 @@ export function ReturnDetailModal({
       return
     }
     try {
-      await handleCodPayout({
+      const updated = await handleCodPayout({
         id: returnData._id,
         action: 'FAIL_PAYOUT',
         failureReason: codFailureReason.trim(),
       }).unwrap()
       setCodSuccess('COD payout recorded as failed.')
       setCodFailureReason('')
-      if (onSuccess) onSuccess()
+      const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
+      if (updatedDoc) {
+        setInternalReturn(updatedDoc)
+      }
+      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setCodError(err?.message || err?.data?.message || 'Failed to record COD payout failure.')
     }
@@ -497,7 +539,7 @@ export function ReturnDetailModal({
                   {dispositionSuccess}
                 </div>
               )}
-              <form onSubmit={handleDispositionSubmit}>
+              <form onSubmit={(e) => { e.preventDefault(); handleDispositionSubmit(e); }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a443e', marginBottom: '4px' }}>
@@ -532,7 +574,8 @@ export function ReturnDetailModal({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleDispositionSubmit}
                     disabled={isSubmittingDisposition}
                     className="button primary"
                     style={{ background: '#276738', borderColor: '#276738', padding: '6px 14px', fontSize: '11px' }}
@@ -608,7 +651,7 @@ export function ReturnDetailModal({
               </div>
             )}
 
-            <form onSubmit={handleDisputeSubmit}>
+            <form onSubmit={(e) => { e.preventDefault(); handleDisputeSubmit(e); }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
                 <label
                   style={{
@@ -714,7 +757,8 @@ export function ReturnDetailModal({
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleDisputeSubmit}
                   disabled={isSubmittingDispute}
                   className="button primary"
                   style={{ padding: '8px 16px', fontSize: '11px' }}
@@ -742,7 +786,7 @@ export function ReturnDetailModal({
               </div>
             )}
 
-            <form onSubmit={handleResolutionSubmit}>
+            <form onSubmit={(e) => { e.preventDefault(); handleResolutionSubmit(e); }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
                 <label
                   style={{
@@ -832,7 +876,8 @@ export function ReturnDetailModal({
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleResolutionSubmit}
                   disabled={isSubmittingResolution}
                   className="button primary"
                   style={{ background: '#3c7951', borderColor: '#3c7951', padding: '8px 16px', fontSize: '11px' }}
@@ -918,7 +963,7 @@ export function ReturnDetailModal({
             {!isCod && (
               <div>
                 {['APPROVED_FOR_REFUND', 'REFUND_FAILED'].includes(returnData.status) && (
-                  <form onSubmit={handleExecutePrepaidRefund} style={{ background: '#fff', border: '1px solid #e9e5df', borderRadius: '6px', padding: '14px' }}>
+                  <form onSubmit={(e) => { e.preventDefault(); handleExecutePrepaidRefund(e); }} style={{ background: '#fff', border: '1px solid #e9e5df', borderRadius: '6px', padding: '14px' }}>
                     <div style={{ marginBottom: '10px' }}>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a443e', marginBottom: '4px' }}>
                         Admin Execution Notes (Optional)
@@ -936,7 +981,8 @@ export function ReturnDetailModal({
                         * Authoritative amount of {formatINR(refundAmount)} will be dispatched to Razorpay. Cannot be modified.
                       </span>
                       <button
-                        type="submit"
+                        type="button"
+                        onClick={handleExecutePrepaidRefund}
                         disabled={isExecutingRefund}
                         className="button primary"
                         style={{ background: '#88422e', borderColor: '#88422e', padding: '8px 16px', fontSize: '11px' }}
@@ -1043,7 +1089,7 @@ export function ReturnDetailModal({
 
                 {returnData.status === 'MANUAL_PAYOUT_PROCESSING' && (
                   <div style={{ background: '#fff', border: '1px solid #e9e5df', borderRadius: '6px', padding: '14px' }}>
-                    <form onSubmit={handleCompleteCodPayout} style={{ marginBottom: '14px' }}>
+                    <form onSubmit={(e) => { e.preventDefault(); handleCompleteCodPayout(e); }} style={{ marginBottom: '14px' }}>
                       <div style={{ marginBottom: '10px' }}>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a443e', marginBottom: '4px' }}>
                           Transaction Reference / UTR Number *
@@ -1059,7 +1105,8 @@ export function ReturnDetailModal({
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <button
-                          type="submit"
+                          type="button"
+                          onClick={handleCompleteCodPayout}
                           disabled={isHandlingCodPayout}
                           className="button primary"
                           style={{ background: '#2d6540', borderColor: '#2d6540', padding: '8px 16px', fontSize: '11px' }}

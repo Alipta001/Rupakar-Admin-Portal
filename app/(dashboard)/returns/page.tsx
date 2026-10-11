@@ -275,16 +275,19 @@ export default function AdminReturnsPage() {
       <DataTable<AdminReturn>
         columns={columns}
         data={returnsList}
-        keyExtractor={(r) => r._id}
+        keyExtractor={(r, idx) => r._id || r.id || String(idx)}
         searchPlaceholder="Search by Return #, Order #, customer, or vendor..."
         onSearchChange={setSearchQuery}
-        searchFilter={(r, q) =>
-          r.returnNumber.toLowerCase().includes(q.toLowerCase()) ||
-          (r.order?.orderNumber || '').toLowerCase().includes(q.toLowerCase()) ||
-          (r.customer?.name || '').toLowerCase().includes(q.toLowerCase()) ||
-          (r.vendor?.storeName || '').toLowerCase().includes(q.toLowerCase()) ||
-          (r.reason || '').toLowerCase().includes(q.toLowerCase())
-        }
+        searchFilter={(r, q) => {
+          const term = (q || '').toLowerCase()
+          return (
+            (r.returnNumber || '').toLowerCase().includes(term) ||
+            (r.order?.orderNumber || '').toLowerCase().includes(term) ||
+            (r.customer?.name || '').toLowerCase().includes(term) ||
+            (r.vendor?.storeName || r.vendor?.businessName || '').toLowerCase().includes(term) ||
+            (r.reason || '').toLowerCase().includes(term)
+          )
+        }}
       />
 
       {/* Detail & Arbitration Modal */}
@@ -299,26 +302,33 @@ export default function AdminReturnsPage() {
           setIsDetailModalOpen(false)
           setSelectedReturn(null)
         }}
-        onSuccess={async () => {
-          const res = await refetch()
-          const raw = res?.data
-          if (raw && selectedReturn) {
-            const list = Array.isArray((raw as any)?.items)
-              ? (raw as any).items
-              : Array.isArray((raw as any)?.data)
-              ? (raw as any).data
-              : Array.isArray(raw)
-              ? raw
-              : []
-            const targetId = selectedReturn._id || selectedReturn.id
-            const updated = list.find((r: any) => (r._id || r.id) === targetId)
-            if (updated) {
-              setSelectedReturn({
-                ...updated,
-                _id: updated._id || updated.id,
-                id: updated.id || updated._id,
-              })
+        onSuccess={async (updatedDoc?: AdminReturn | null) => {
+          if (updatedDoc) {
+            setSelectedReturn(updatedDoc)
+          }
+          try {
+            const res = await refetch()
+            const raw = res?.data
+            if (raw && (selectedReturn || updatedDoc)) {
+              const list = Array.isArray((raw as any)?.items)
+                ? (raw as any).items
+                : Array.isArray((raw as any)?.data)
+                ? (raw as any).data
+                : Array.isArray(raw)
+                ? raw
+                : []
+              const targetId = updatedDoc?._id || updatedDoc?.id || selectedReturn?._id || selectedReturn?.id
+              const updated = list.find((r: any) => (r._id || r.id) === targetId)
+              if (updated) {
+                setSelectedReturn({
+                  ...updated,
+                  _id: updated._id || updated.id,
+                  id: updated.id || updated._id,
+                })
+              }
             }
+          } catch (err) {
+            console.error('Failed to refetch returns after update:', err)
           }
         }}
       />
