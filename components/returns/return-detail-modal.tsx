@@ -27,6 +27,7 @@ import {
   useAdminHandleCodPayoutMutation,
   useAdminCreateReplacementMutation,
   useAdminSubmitReturnDispositionMutation,
+  useAdminRetryReverseShipmentMutation,
 } from '@/redux/api/adminApi'
 
 export interface ReturnDetailModalProps {
@@ -87,6 +88,12 @@ export function ReturnDetailModal({
   const [handleCodPayout, { isLoading: isHandlingCodPayout }] = useAdminHandleCodPayoutMutation()
   const [createReplacementOrder, { isLoading: isCreatingReplacement }] = useAdminCreateReplacementMutation()
   const [submitDisposition, { isLoading: isSubmittingDisposition }] = useAdminSubmitReturnDispositionMutation()
+  const [retryReverseShipment, { isLoading: isRetryingReverseShipment }] = useAdminRetryReverseShipmentMutation()
+
+  const [retryFeedback, setRetryFeedback] = useState<{
+    type: 'success' | 'warning' | 'error'
+    message: string
+  } | null>(null)
 
   if (!returnData || (!isPage && !isOpen)) return null
 
@@ -95,6 +102,102 @@ export function ReturnDetailModal({
     returnData.status === 'INSPECTION_PASSED' ||
     returnData.status === 'DISPOSITION_PENDING' ||
     returnData.status === 'DISPOSITION_COMPLETED'
+
+  const isTerminalOrIneligible = [
+    'REJECTED',
+    'REJECTED_AFTER_INSPECTION',
+    'CANCELLED',
+    'CLOSED',
+    'COMPLETED',
+    'REFUNDED',
+    'RETURN_RECEIVED',
+    'RECEIVED',
+    'APPROVED_FOR_REFUND',
+    'REPLACEMENT_PENDING',
+  ].includes(returnData.status)
+
+  const hasRecoverableFailure = Boolean(
+    returnData.reverseShipment &&
+      ([
+        'AWB_FAILED',
+        'LABEL_FAILED',
+        'PICKUP_FAILED',
+        'PREPARE_FAILED',
+        'PACKAGE_INFO_REQUIRED',
+      ].includes(returnData.reverseShipment.status) ||
+        returnData.reverseShipment.metadata?.awbError ||
+        returnData.reverseShipment.metadata?.pickupError ||
+        returnData.reverseShipment.metadata?.labelError ||
+        (returnData.reverseShipment as any).awbError ||
+        (returnData.reverseShipment as any).pickupError ||
+        (returnData.reverseShipment as any).labelError)
+  )
+
+  const canRetryReverseShipment =
+    !isTerminalOrIneligible &&
+    (returnData.status === 'APPROVED' || hasRecoverableFailure)
+
+  const handleRetryReverseShipment = async (e?: React.FormEvent | React.SyntheticEvent) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault()
+    }
+    if (isRetryingReverseShipment || !returnData) return
+    setRetryFeedback(null)
+
+    const returnId = String(returnData._id || returnData.id || '')
+    if (!returnId) {
+      setRetryFeedback({ type: 'error', message: 'Return identifier is missing.' })
+      return
+    }
+
+    try {
+      const response = await retryReverseShipment({ id: returnId }).unwrap()
+      const resData = (response as any)?.data || response
+      const isOk = resData?.success !== false
+      const stage = resData?.stage || 'UNKNOWN'
+      const errorMsg = resData?.error
+
+      if (isOk) {
+        setRetryFeedback({
+          type: 'success',
+          message: `Reverse shipment processed successfully. Status: ${stage.replaceAll('_', ' ')}${
+            resData?.shipment?.providerAwb ? ` • AWB: ${resData.shipment.providerAwb}` : ''
+          }`,
+        })
+      } else {
+        setRetryFeedback({
+          type: 'warning',
+          message: `Reverse shipment paused at stage: ${stage.replaceAll('_', ' ')}${
+            errorMsg ? ` (${errorMsg})` : ''
+          }`,
+        })
+      }
+
+      if (resData?.shipment || resData?.returnStatus) {
+        const merged: AdminReturn = {
+          ...returnData,
+          status: (resData?.returnStatus as any) || returnData.status,
+          reverseShipment: resData?.shipment
+            ? {
+                ...(returnData.reverseShipment || {}),
+                ...resData.shipment,
+                _id: resData.shipment._id || resData.shipment.id || returnData.reverseShipment?._id || '',
+                carrierOrderId: resData.shipment.providerOrderId || returnData.reverseShipment?.carrierOrderId,
+                carrierShipmentId: resData.shipment.providerShipmentId || returnData.reverseShipment?.carrierShipmentId,
+                trackingNumber: resData.shipment.providerAwb || resData.shipment.trackingNumber || returnData.reverseShipment?.trackingNumber,
+              }
+            : returnData.reverseShipment,
+        }
+        setInternalReturn(merged)
+        if (onSuccess) onSuccess(merged)
+      } else {
+        if (onSuccess) onSuccess()
+      }
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message || 'Failed to retry reverse shipment.'
+      setRetryFeedback({ type: 'error', message: msg })
+    }
+  }
 
   const handleDisputeSubmit = async (e?: React.FormEvent | React.SyntheticEvent) => {
     if (e && typeof e.preventDefault === 'function') {
@@ -1041,6 +1144,97 @@ export function ReturnDetailModal({
                   </span>
                 </div>
               )}
+
+              {canRetryReverseShipment && (
+                <div
+                  style={{
+                    marginTop: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: '#fcf8f3',
+                      border: '1px solid #ebdccb',
+                      borderRadius: '6px',
+                      padding: '8px 12px',
+                    }}
+                  >
+                    <span style={{ fontSize: '11px', color: '#554e47' }}>
+                      Carrier reverse logistics not yet scheduled or needs re-dispatching?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRetryReverseShipment}
+                      disabled={isRetryingReverseShipment}
+                      style={{
+                        background: '#a45138',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '5px',
+                        padding: '6px 14px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: isRetryingReverseShipment ? 'not-allowed' : 'pointer',
+                        opacity: isRetryingReverseShipment ? 0.7 : 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'background 0.15s ease',
+                      }}
+                    >
+                      <Truck size={13} />
+                      {isRetryingReverseShipment ? 'Retrying Reverse Shipment...' : 'Retry Reverse Shipment'}
+                    </button>
+                  </div>
+                  {retryFeedback && (
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background:
+                          retryFeedback.type === 'success'
+                            ? '#f0fdf4'
+                            : retryFeedback.type === 'warning'
+                            ? '#fffbeb'
+                            : '#fef2f2',
+                        border: `1px solid ${
+                          retryFeedback.type === 'success'
+                            ? '#bbf7d0'
+                            : retryFeedback.type === 'warning'
+                            ? '#fde68a'
+                            : '#fecaca'
+                        }`,
+                        color:
+                          retryFeedback.type === 'success'
+                            ? '#166534'
+                            : retryFeedback.type === 'warning'
+                            ? '#92400e'
+                            : '#991b1b',
+                      }}
+                    >
+                      {retryFeedback.type === 'success' ? (
+                        <CheckCircle2 size={13} color="#16a34a" />
+                      ) : (
+                        <AlertTriangle
+                          size={13}
+                          color={retryFeedback.type === 'warning' ? '#d97706' : '#dc2626'}
+                        />
+                      )}
+                      <span>{retryFeedback.message}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1721,6 +1915,30 @@ export function ReturnDetailModal({
                 </h3>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {canRetryReverseShipment && (
+                  <button
+                    type="button"
+                    onClick={handleRetryReverseShipment}
+                    disabled={isRetryingReverseShipment}
+                    style={{
+                      background: '#a45138',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '3px 8px',
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      cursor: isRetryingReverseShipment ? 'not-allowed' : 'pointer',
+                      opacity: isRetryingReverseShipment ? 0.7 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Truck size={11} />
+                    {isRetryingReverseShipment ? 'Retrying...' : 'Retry Reverse Shipment'}
+                  </button>
+                )}
                 <span
                   style={{
                     fontSize: '11px',

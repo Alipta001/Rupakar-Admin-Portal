@@ -924,6 +924,20 @@ export const adminApi = createApi({
         'Inventory',
       ],
     }),
+    adminRetryReverseShipment: builder.mutation<
+      any,
+      { id: string }
+    >({
+      query: ({ id }) => ({
+        url: ENDPOINTS.RETURNS.RETRY_REVERSE_SHIPMENT(id),
+        method: 'POST',
+        data: {},
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Returns', id },
+        { type: 'Returns', id: 'LIST' },
+      ],
+    }),
 
     // 10. Inventory
     getInventory: builder.query<PaginatedResult<InventoryItem>, QueryParams | void>({
@@ -1403,6 +1417,7 @@ export const {
   useAdminHandleCodPayoutMutation,
   useAdminCreateReplacementMutation,
   useAdminSubmitReturnDispositionMutation,
+  useAdminRetryReverseShipmentMutation,
   useGetInventoryQuery,
   useGetCommissionsQuery,
   useGetCommissionConfigsQuery,

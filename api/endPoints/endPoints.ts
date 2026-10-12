@@ -92,6 +92,7 @@ export const ENDPOINTS = {
     COD_PAYOUT: (id: string) => `/admin/returns/${id}/cod-payout`,
     REPLACEMENT: (id: string) => `/admin/returns/${id}/replacement`,
     DISPOSITION: (id: string) => `/admin/returns/${id}/disposition`,
+    RETRY_REVERSE_SHIPMENT: (id: string) => `/admin/returns/${id}/reverse-shipment/retry`,
   },
   INVENTORY: {
     LIST: '/admin/inventory',
