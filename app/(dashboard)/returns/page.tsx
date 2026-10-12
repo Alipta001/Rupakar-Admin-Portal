@@ -165,7 +165,10 @@ export default function AdminReturnsPage() {
       header: 'Actions',
       cell: (r) => {
         const isDisputed = r.status === 'DISPUTED'
-        const isReadyToResolve = r.status === 'INSPECTION_PASSED'
+        const isReadyToResolve =
+          r.status === 'INSPECTION_PASSED' ||
+          r.status === 'DISPOSITION_PENDING' ||
+          r.status === 'DISPOSITION_COMPLETED'
         const isRefundReady =
           r.status === 'APPROVED_FOR_REFUND' ||
           r.status === 'REFUND_PENDING' ||

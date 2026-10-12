@@ -93,8 +93,8 @@ export function ReturnDetailModal({
   const isDisputed = returnData.status === 'DISPUTED'
   const isEligibleForResolution =
     returnData.status === 'INSPECTION_PASSED' ||
-    returnData.status === 'APPROVED' ||
-    (returnData.dispute && (returnData.dispute.decision === 'UPHOLD_CUSTOMER' || returnData.dispute.status === 'UPHELD_CUSTOMER'))
+    returnData.status === 'DISPOSITION_PENDING' ||
+    returnData.status === 'DISPOSITION_COMPLETED'
 
   const handleDisputeSubmit = async (e?: React.FormEvent | React.SyntheticEvent) => {
     if (e && typeof e.preventDefault === 'function') {
@@ -883,6 +883,166 @@ export function ReturnDetailModal({
             </div>
           </div>
         )}
+
+        {/* Return Lifecycle Guidance & Current Status Information (When Pre-Resolution) */}
+        {!isEligibleForResolution &&
+          !isDisputed &&
+          !isEligibleForRefundPanel &&
+          !(returnData.resolution?.action === 'REPLACEMENT' || returnData.status === 'REPLACEMENT_PENDING') && (
+            <div
+              style={{
+                background: '#fbf9f5',
+                border: '1px solid #e7dfd3',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '20px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '10px',
+                  borderBottom: '1px solid #ede7dc',
+                  paddingBottom: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#88422e' }}>
+                  {returnData.status === 'APPROVED' || returnData.status === 'PICKUP_SCHEDULED' || returnData.status === 'PICKED_UP' || returnData.status === 'IN_TRANSIT' ? (
+                    <Truck size={16} />
+                  ) : returnData.status === 'RETURN_RECEIVED' ? (
+                    <Package size={16} />
+                  ) : returnData.status === 'INSPECTION_PENDING' ? (
+                    <Clock size={16} />
+                  ) : returnData.status === 'INSPECTION_FAILED' ? (
+                    <AlertTriangle size={16} />
+                  ) : returnData.status === 'REJECTED' || returnData.status === 'REJECTED_AFTER_INSPECTION' || returnData.status === 'CANCELLED' ? (
+                    <XCircle size={16} />
+                  ) : returnData.status === 'CLOSED' ? (
+                    <CheckCircle2 size={16} />
+                  ) : (
+                    <Clock size={16} />
+                  )}
+                  <strong style={{ fontSize: '12px', color: '#4a443e' }}>
+                    {returnData.status === 'APPROVED'
+                      ? 'Return Lifecycle: Waiting for Reverse Shipment & Pickup'
+                      : returnData.status === 'PICKUP_SCHEDULED'
+                      ? 'Return Lifecycle: Courier Pickup Scheduled'
+                      : returnData.status === 'PICKED_UP'
+                      ? 'Return Lifecycle: Courier Picked Up'
+                      : returnData.status === 'IN_TRANSIT'
+                      ? 'Return Lifecycle: In Transit to Seller'
+                      : returnData.status === 'RETURN_RECEIVED'
+                      ? 'Return Lifecycle: Package Received — Waiting for Inspection'
+                      : returnData.status === 'INSPECTION_PENDING'
+                      ? 'Return Lifecycle: Seller Physical Inspection In Progress'
+                      : returnData.status === 'INSPECTION_FAILED'
+                      ? 'Return Lifecycle: Inspection Failed by Seller'
+                      : returnData.status === 'REQUESTED' || returnData.status === 'UNDER_REVIEW'
+                      ? 'Return Lifecycle: Waiting for Seller Initial Review'
+                      : returnData.status === 'REJECTED' || returnData.status === 'REJECTED_AFTER_INSPECTION'
+                      ? 'Return Lifecycle: Return Request Rejected'
+                      : returnData.status === 'CANCELLED'
+                      ? 'Return Lifecycle: Return Cancelled'
+                      : returnData.status === 'CLOSED'
+                      ? 'Return Lifecycle: Return Completed & Closed'
+                      : `Return Lifecycle: Status ${returnData.status}`}
+                  </strong>
+                </div>
+                <span
+                  style={{
+                    background: '#ede7dc',
+                    color: '#6d655d',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                  }}
+                >
+                  Current Phase
+                </span>
+              </div>
+
+              <p style={{ margin: '0 0 8px', fontSize: '11px', color: '#554e47', lineHeight: 1.5 }}>
+                {returnData.status === 'APPROVED' ? (
+                  <>
+                    The seller has approved this return request. The return is currently waiting for reverse shipment generation and carrier pickup from the customer.
+                  </>
+                ) : returnData.status === 'PICKUP_SCHEDULED' ? (
+                  <>
+                    Courier pickup has been scheduled. Waiting for the carrier partner to collect the package from the customer.
+                  </>
+                ) : returnData.status === 'PICKED_UP' || returnData.status === 'IN_TRANSIT' ? (
+                  <>
+                    The returned item has been collected by the courier and is in transit back to the seller facility. Waiting for delivery.
+                  </>
+                ) : returnData.status === 'RETURN_RECEIVED' ? (
+                  <>
+                    The return package has arrived at the seller warehouse. Waiting for the seller to begin physical inspection.
+                  </>
+                ) : returnData.status === 'INSPECTION_PENDING' ? (
+                  <>
+                    The seller is currently conducting physical inspection of the returned items.
+                  </>
+                ) : returnData.status === 'INSPECTION_FAILED' ? (
+                  <>
+                    The seller inspected the items and marked the inspection as failed. If the seller raises a dispute, arbitration controls will be presented.
+                  </>
+                ) : returnData.status === 'REQUESTED' || returnData.status === 'UNDER_REVIEW' ? (
+                  <>
+                    The customer submitted this return request. Waiting for the artisan seller to review reasons and approve reverse logistics.
+                  </>
+                ) : returnData.status === 'REJECTED' || returnData.status === 'REJECTED_AFTER_INSPECTION' ? (
+                  <>
+                    This return was rejected. No further administrative action is pending.
+                  </>
+                ) : returnData.status === 'CANCELLED' ? (
+                  <>
+                    This return was cancelled. No further actions are required.
+                  </>
+                ) : returnData.status === 'CLOSED' ? (
+                  <>
+                    This return workflow has been finalized and closed.
+                  </>
+                ) : (
+                  <>This return is currently in status {returnData.status}.</>
+                )}
+              </p>
+
+              {['APPROVED', 'PICKUP_SCHEDULED', 'PICKED_UP', 'IN_TRANSIT', 'RETURN_RECEIVED', 'INSPECTION_PENDING'].includes(
+                returnData.status,
+              ) && (
+                <div
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #ebdccb',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    fontSize: '10px',
+                    color: '#827b72',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Clock size={12} color="#a45138" />
+                  <span>
+                    <strong>Next Action Required:</strong>{' '}
+                    {returnData.status === 'APPROVED'
+                      ? 'Courier pickup dispatch & carrier reverse logistics transit.'
+                      : returnData.status === 'PICKUP_SCHEDULED'
+                      ? 'Package handover from customer to courier partner.'
+                      : returnData.status === 'PICKED_UP' || returnData.status === 'IN_TRANSIT'
+                      ? 'Package delivery confirmation at seller facility.'
+                      : 'Seller physical item verification & inspection outcome (PASSED / FAILED).'}
+                    {' '}
+                    <em>Admin Final Resolution (Refund / Replacement) will unlock once inspection passes.</em>
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
         {/* Section 5: Admin Return Final Business Resolution (When Eligible) */}
         {isEligibleForResolution && (
