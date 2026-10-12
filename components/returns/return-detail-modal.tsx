@@ -44,16 +44,15 @@ export function ReturnDetailModal({
   onSuccess,
   isPage = false,
 }: ReturnDetailModalProps) {
-  const [internalReturn, setInternalReturn] = useState<AdminReturn | null>(null)
+  const [internalReturn, setInternalReturn] = useState<AdminReturn | null>(propReturnData)
 
   useEffect(() => {
-    setInternalReturn(null)
-  }, [propReturnData?._id, propReturnData?.id])
+    if (propReturnData) {
+      setInternalReturn(propReturnData)
+    }
+  }, [propReturnData])
 
-  const returnData: AdminReturn | null =
-    internalReturn && (internalReturn._id === propReturnData?._id || internalReturn.id === propReturnData?.id)
-      ? { ...propReturnData, ...internalReturn }
-      : propReturnData
+  const returnData: AdminReturn | null = internalReturn || propReturnData
 
   const [disputeDecision, setDisputeDecision] = useState<'UPHOLD_CUSTOMER' | 'UPHOLD_SELLER' | 'REQUEST_MORE_INFO'>('UPHOLD_CUSTOMER')
   const [disputeReason, setDisputeReason] = useState('')
@@ -101,8 +100,14 @@ export function ReturnDetailModal({
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault()
     }
-    if (isSubmittingDispute) return
+    if (isSubmittingDispute || !returnData) return
     setDisputeError(null)
+
+    const returnId = String(returnData._id || returnData.id || '')
+    if (!returnId) {
+      setDisputeError('Return identifier is missing.')
+      return
+    }
 
     if (!disputeReason.trim()) {
       setDisputeError('Decision reason is required for dispute arbitration.')
@@ -111,7 +116,7 @@ export function ReturnDetailModal({
 
     try {
       const disputed = await submitDispute({
-        id: returnData._id,
+        id: returnId,
         decision: disputeDecision,
         decisionReason: disputeReason.trim(),
         adminNotes: disputeAdminNotes.trim() || undefined,
@@ -121,9 +126,17 @@ export function ReturnDetailModal({
       setDisputeAdminNotes('')
       const updatedDoc = disputed && typeof disputed === 'object' ? (disputed as AdminReturn) : null
       if (updatedDoc) {
-        setInternalReturn(updatedDoc)
+        const normalized = {
+          ...returnData,
+          ...updatedDoc,
+          _id: String(updatedDoc._id || updatedDoc.id || returnId),
+          id: String(updatedDoc.id || updatedDoc._id || returnId),
+        }
+        setInternalReturn(normalized)
+        if (onSuccess) onSuccess(normalized)
+      } else {
+        if (onSuccess) onSuccess()
       }
-      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setDisputeError(err?.message || err?.data?.message || 'Failed to submit dispute decision.')
     }
@@ -133,12 +146,18 @@ export function ReturnDetailModal({
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault()
     }
-    if (isSubmittingResolution) return
+    if (isSubmittingResolution || !returnData) return
     setResolutionError(null)
+
+    const returnId = String(returnData._id || returnData.id || '')
+    if (!returnId) {
+      setResolutionError('Return identifier is missing.')
+      return
+    }
 
     try {
       const resolved = await submitResolution({
-        id: returnData._id,
+        id: returnId,
         resolution: resolutionAction,
         notes: resolutionNotes.trim() || undefined,
       }).unwrap()
@@ -146,9 +165,17 @@ export function ReturnDetailModal({
       setResolutionNotes('')
       const updatedDoc = resolved && typeof resolved === 'object' ? (resolved as AdminReturn) : null
       if (updatedDoc) {
-        setInternalReturn(updatedDoc)
+        const normalized = {
+          ...returnData,
+          ...updatedDoc,
+          _id: String(updatedDoc._id || updatedDoc.id || returnId),
+          id: String(updatedDoc.id || updatedDoc._id || returnId),
+        }
+        setInternalReturn(normalized)
+        if (onSuccess) onSuccess(normalized)
+      } else {
+        if (onSuccess) onSuccess()
       }
-      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setResolutionError(err?.message || err?.data?.message || 'Failed to submit return resolution.')
     }
@@ -158,9 +185,15 @@ export function ReturnDetailModal({
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault()
     }
-    if (isSubmittingDisposition) return
+    if (isSubmittingDisposition || !returnData) return
     setDispositionError(null)
     setDispositionSuccess(null)
+
+    const returnId = String(returnData._id || returnData.id || '')
+    if (!returnId) {
+      setDispositionError('Return identifier is missing.')
+      return
+    }
 
     const isRestockable = dispositionCategory === 'RESTOCKABLE'
     const items = (returnData.items || []).map((it) => ({
@@ -173,7 +206,7 @@ export function ReturnDetailModal({
 
     try {
       const updated = await submitDisposition({
-        id: returnData._id,
+        id: returnId,
         items,
         notes: dispositionNotes.trim() || undefined,
       }).unwrap()
@@ -181,9 +214,17 @@ export function ReturnDetailModal({
       setDispositionSuccess('Inventory disposition committed successfully. Restockable items incremented in inventory.')
       const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
       if (updatedDoc) {
-        setInternalReturn(updatedDoc)
+        const normalized = {
+          ...returnData,
+          ...updatedDoc,
+          _id: String(updatedDoc._id || updatedDoc.id || returnId),
+          id: String(updatedDoc.id || updatedDoc._id || returnId),
+        }
+        setInternalReturn(normalized)
+        if (onSuccess) onSuccess(normalized)
+      } else {
+        if (onSuccess) onSuccess()
       }
-      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setDispositionError(err?.message || err?.data?.message || 'Failed to submit inventory disposition.')
     }
@@ -193,33 +234,55 @@ export function ReturnDetailModal({
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault()
     }
-    if (isExecutingRefund) return
+    if (isExecutingRefund || !returnData) return
     setRefundError(null)
     setRefundSuccess(null)
+
+    const returnId = String(returnData._id || returnData.id || '')
+    if (!returnId) {
+      setRefundError('Return identifier is missing.')
+      return
+    }
+
     try {
       const updated = await executeRefund({
-        id: returnData._id,
+        id: returnId,
         notes: refundNotes.trim() || undefined,
       }).unwrap()
       setRefundSuccess('Prepaid refund successfully initiated with Razorpay.')
       setRefundNotes('')
       const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
       if (updatedDoc) {
-        setInternalReturn(updatedDoc)
+        const normalized = {
+          ...returnData,
+          ...updatedDoc,
+          _id: String(updatedDoc._id || updatedDoc.id || returnId),
+          id: String(updatedDoc.id || updatedDoc._id || returnId),
+        }
+        setInternalReturn(normalized)
+        if (onSuccess) onSuccess(normalized)
+      } else {
+        if (onSuccess) onSuccess()
       }
-      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setRefundError(err?.message || err?.data?.message || 'Failed to execute prepaid refund.')
     }
   }
 
   const handleInitiateCodPayout = async () => {
-    if (isHandlingCodPayout) return
+    if (isHandlingCodPayout || !returnData) return
     setCodError(null)
     setCodSuccess(null)
+
+    const returnId = String(returnData._id || returnData.id || '')
+    if (!returnId) {
+      setCodError('Return identifier is missing.')
+      return
+    }
+
     try {
       const updated = await handleCodPayout({
-        id: returnData._id,
+        id: returnId,
         action: 'INITIATE_PAYOUT',
         notes: codNotes.trim() || undefined,
       }).unwrap()
@@ -227,9 +290,17 @@ export function ReturnDetailModal({
       setCodNotes('')
       const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
       if (updatedDoc) {
-        setInternalReturn(updatedDoc)
+        const normalized = {
+          ...returnData,
+          ...updatedDoc,
+          _id: String(updatedDoc._id || updatedDoc.id || returnId),
+          id: String(updatedDoc.id || updatedDoc._id || returnId),
+        }
+        setInternalReturn(normalized)
+        if (onSuccess) onSuccess(normalized)
+      } else {
+        if (onSuccess) onSuccess()
       }
-      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setCodError(err?.message || err?.data?.message || 'Failed to initiate COD payout.')
     }
@@ -239,16 +310,23 @@ export function ReturnDetailModal({
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault()
     }
-    if (isHandlingCodPayout) return
+    if (isHandlingCodPayout || !returnData) return
     setCodError(null)
     setCodSuccess(null)
+
+    const returnId = String(returnData._id || returnData.id || '')
+    if (!returnId) {
+      setCodError('Return identifier is missing.')
+      return
+    }
+
     if (!codReference.trim()) {
       setCodError('Transaction reference / UTR is required to mark COD payout completed.')
       return
     }
     try {
       const updated = await handleCodPayout({
-        id: returnData._id,
+        id: returnId,
         action: 'COMPLETE_PAYOUT',
         reference: codReference.trim(),
         notes: codNotes.trim() || undefined,
@@ -257,25 +335,40 @@ export function ReturnDetailModal({
       setCodReference('')
       const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
       if (updatedDoc) {
-        setInternalReturn(updatedDoc)
+        const normalized = {
+          ...returnData,
+          ...updatedDoc,
+          _id: String(updatedDoc._id || updatedDoc.id || returnId),
+          id: String(updatedDoc.id || updatedDoc._id || returnId),
+        }
+        setInternalReturn(normalized)
+        if (onSuccess) onSuccess(normalized)
+      } else {
+        if (onSuccess) onSuccess()
       }
-      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setCodError(err?.message || err?.data?.message || 'Failed to record COD payout.')
     }
   }
 
   const handleFailCodPayout = async () => {
-    if (isHandlingCodPayout) return
+    if (isHandlingCodPayout || !returnData) return
     setCodError(null)
     setCodSuccess(null)
+
+    const returnId = String(returnData._id || returnData.id || '')
+    if (!returnId) {
+      setCodError('Return identifier is missing.')
+      return
+    }
+
     if (!codFailureReason.trim()) {
       setCodError('Failure reason is required.')
       return
     }
     try {
       const updated = await handleCodPayout({
-        id: returnData._id,
+        id: returnId,
         action: 'FAIL_PAYOUT',
         failureReason: codFailureReason.trim(),
       }).unwrap()
@@ -283,9 +376,17 @@ export function ReturnDetailModal({
       setCodFailureReason('')
       const updatedDoc = updated && typeof updated === 'object' ? (updated as AdminReturn) : null
       if (updatedDoc) {
-        setInternalReturn(updatedDoc)
+        const normalized = {
+          ...returnData,
+          ...updatedDoc,
+          _id: String(updatedDoc._id || updatedDoc.id || returnId),
+          id: String(updatedDoc.id || updatedDoc._id || returnId),
+        }
+        setInternalReturn(normalized)
+        if (onSuccess) onSuccess(normalized)
+      } else {
+        if (onSuccess) onSuccess()
       }
-      if (onSuccess) onSuccess(updatedDoc)
     } catch (err: any) {
       setCodError(err?.message || err?.data?.message || 'Failed to record COD payout failure.')
     }
@@ -540,7 +641,7 @@ export function ReturnDetailModal({
                   {dispositionSuccess}
                 </div>
               )}
-              <form onSubmit={(e) => { e.preventDefault(); handleDispositionSubmit(e); }}>
+              <div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a443e', marginBottom: '4px' }}>
@@ -569,6 +670,12 @@ export function ReturnDetailModal({
                       placeholder="e.g. Inspected and verified in pristine condition, returned to active inventory."
                       value={dispositionNotes}
                       onChange={(e) => setDispositionNotes(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleDispositionSubmit(e)
+                        }
+                      }}
                       style={{ width: '100%', border: '1px solid #dcd7ce', borderRadius: '6px', padding: '6px 8px', fontSize: '11px' }}
                     />
                   </div>
@@ -584,7 +691,7 @@ export function ReturnDetailModal({
                     {isSubmittingDisposition ? 'Processing...' : 'Authorize & Commit Disposition'}
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           )}
 
@@ -652,7 +759,7 @@ export function ReturnDetailModal({
               </div>
             )}
 
-            <form onSubmit={(e) => { e.preventDefault(); handleDisputeSubmit(e); }}>
+            <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
                 <label
                   style={{
@@ -739,6 +846,12 @@ export function ReturnDetailModal({
                   placeholder="e.g. Seller photographic evidence confirmed item was damaged by customer..."
                   value={disputeReason}
                   onChange={(e) => setDisputeReason(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleDisputeSubmit(e)
+                    }
+                  }}
                   style={{ width: '100%', border: '1px solid #dcd7ce', borderRadius: '6px', padding: '8px 10px', fontSize: '11px' }}
                 />
               </div>
@@ -767,7 +880,7 @@ export function ReturnDetailModal({
                   {isSubmittingDispute ? 'Recording Decision...' : 'Authorise Dispute Decision'}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         )}
 
@@ -787,7 +900,7 @@ export function ReturnDetailModal({
               </div>
             )}
 
-            <form onSubmit={(e) => { e.preventDefault(); handleResolutionSubmit(e); }}>
+            <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
                 <label
                   style={{
@@ -871,6 +984,12 @@ export function ReturnDetailModal({
                   placeholder="e.g. Return inspection passed, authorizing proportional customer refund."
                   value={resolutionNotes}
                   onChange={(e) => setResolutionNotes(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleResolutionSubmit(e)
+                    }
+                  }}
                   style={{ width: '100%', border: '1px solid #dcd7ce', borderRadius: '6px', padding: '8px 10px', fontSize: '11px' }}
                 />
               </div>
@@ -886,7 +1005,7 @@ export function ReturnDetailModal({
                   {isSubmittingResolution ? 'Resolving...' : 'Commit Final Resolution'}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         )}
 
@@ -964,7 +1083,7 @@ export function ReturnDetailModal({
             {!isCod && (
               <div>
                 {['APPROVED_FOR_REFUND', 'REFUND_FAILED'].includes(returnData.status) && (
-                  <form onSubmit={(e) => { e.preventDefault(); handleExecutePrepaidRefund(e); }} style={{ background: '#fff', border: '1px solid #e9e5df', borderRadius: '6px', padding: '14px' }}>
+                  <div style={{ background: '#fff', border: '1px solid #e9e5df', borderRadius: '6px', padding: '14px' }}>
                     <div style={{ marginBottom: '10px' }}>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a443e', marginBottom: '4px' }}>
                         Admin Execution Notes (Optional)
@@ -974,6 +1093,12 @@ export function ReturnDetailModal({
                         placeholder="e.g. Authorized Razorpay gateway refund for approved return."
                         value={refundNotes}
                         onChange={(e) => setRefundNotes(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleExecutePrepaidRefund(e)
+                          }
+                        }}
                         style={{ width: '100%', border: '1px solid #dcd7ce', borderRadius: '6px', padding: '8px 10px', fontSize: '11px' }}
                       />
                     </div>
@@ -995,7 +1120,7 @@ export function ReturnDetailModal({
                           : 'Execute Prepaid Refund (Razorpay)'}
                       </button>
                     </div>
-                  </form>
+                  </div>
                 )}
 
                 {['REFUND_PENDING', 'REFUND_PROCESSING'].includes(returnData.status) && (
@@ -1090,7 +1215,7 @@ export function ReturnDetailModal({
 
                 {returnData.status === 'MANUAL_PAYOUT_PROCESSING' && (
                   <div style={{ background: '#fff', border: '1px solid #e9e5df', borderRadius: '6px', padding: '14px' }}>
-                    <form onSubmit={(e) => { e.preventDefault(); handleCompleteCodPayout(e); }} style={{ marginBottom: '14px' }}>
+                    <div style={{ marginBottom: '14px' }}>
                       <div style={{ marginBottom: '10px' }}>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a443e', marginBottom: '4px' }}>
                           Transaction Reference / UTR Number *
@@ -1101,6 +1226,12 @@ export function ReturnDetailModal({
                           placeholder="e.g. UTR1234567890 or UPI Ref ID"
                           value={codReference}
                           onChange={(e) => setCodReference(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleCompleteCodPayout(e)
+                            }
+                          }}
                           style={{ width: '100%', border: '1px solid #dcd7ce', borderRadius: '6px', padding: '8px 10px', fontSize: '11px' }}
                         />
                       </div>
@@ -1115,7 +1246,7 @@ export function ReturnDetailModal({
                           {isHandlingCodPayout ? 'Recording...' : 'Mark Payout Completed'}
                         </button>
                       </div>
-                    </form>
+                    </div>
 
                     <div style={{ borderTop: '1px solid #f0ede8', paddingTop: '10px' }}>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#88422e', marginBottom: '4px' }}>
@@ -1357,12 +1488,30 @@ export function ReturnDetailModal({
                 <button
                   type="button"
                   onClick={async () => {
+                    if (isCreatingReplacement || !returnData) return
                     setReplacementError(null)
                     setReplacementSuccess(null)
+                    const returnId = String(returnData._id || returnData.id || '')
+                    if (!returnId) {
+                      setReplacementError('Return identifier is missing.')
+                      return
+                    }
                     try {
-                      await createReplacementOrder({ id: returnData._id }).unwrap()
+                      const res = await createReplacementOrder({ id: returnId }).unwrap()
                       setReplacementSuccess('Replacement order created successfully!')
-                      if (onSuccess) onSuccess()
+                      const updatedDoc = res && typeof res === 'object' ? (res as AdminReturn) : null
+                      if (updatedDoc) {
+                        const normalized = {
+                          ...returnData,
+                          ...updatedDoc,
+                          _id: String(updatedDoc._id || updatedDoc.id || returnId),
+                          id: String(updatedDoc.id || updatedDoc._id || returnId),
+                        }
+                        setInternalReturn(normalized)
+                        if (onSuccess) onSuccess(normalized)
+                      } else {
+                        if (onSuccess) onSuccess()
+                      }
                     } catch (err: any) {
                       setReplacementError(
                         err?.message || err?.data?.message || 'Failed to create replacement order.',

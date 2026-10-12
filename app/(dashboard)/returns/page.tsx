@@ -74,7 +74,12 @@ export default function AdminReturnsPage() {
   const passedCount = returnsList.filter((r) => r.status === 'INSPECTION_PASSED').length
 
   const handleRowClick = (ret: AdminReturn) => {
-    setSelectedReturn(ret)
+    const normalized: AdminReturn = {
+      ...ret,
+      _id: String(ret._id || ret.id || ''),
+      id: String(ret.id || ret._id || ''),
+    }
+    setSelectedReturn(normalized)
     setIsDetailModalOpen(true)
   }
 
@@ -292,11 +297,7 @@ export default function AdminReturnsPage() {
 
       {/* Detail & Arbitration Modal */}
       <ReturnDetailModal
-        returnData={
-          selectedReturn
-            ? returnsList.find((r) => (r._id || r.id) === (selectedReturn._id || selectedReturn.id)) || selectedReturn
-            : null
-        }
+        returnData={selectedReturn}
         isOpen={isDetailModalOpen}
         onClose={() => {
           setIsDetailModalOpen(false)
@@ -309,7 +310,7 @@ export default function AdminReturnsPage() {
           try {
             const res = await refetch()
             const raw = res?.data
-            if (raw && (selectedReturn || updatedDoc)) {
+            if (raw) {
               const list = Array.isArray((raw as any)?.items)
                 ? (raw as any).items
                 : Array.isArray((raw as any)?.data)
@@ -320,11 +321,12 @@ export default function AdminReturnsPage() {
               const targetId = updatedDoc?._id || updatedDoc?.id || selectedReturn?._id || selectedReturn?.id
               const updated = list.find((r: any) => (r._id || r.id) === targetId)
               if (updated) {
-                setSelectedReturn({
+                setSelectedReturn((prev) => ({
+                  ...(prev || {}),
                   ...updated,
                   _id: updated._id || updated.id,
                   id: updated.id || updated._id,
-                })
+                }))
               }
             }
           } catch (err) {
